@@ -1,0 +1,69 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta httpEquiv="X-UA-Compatible" content="IE=edge" />
+    <meta name="theme-color" content="#0E0F12" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="mobile-web-app-capable" content="yes" />
+    <title>%WEB_TITLE%</title>
+    <meta name="description" content="Cliper Agent: paste a trending video link and get ready-to-post clips for phone (9:16) or desktop (16:9)." />
+    <link rel="manifest" href="/manifest.json" />
+    <link rel="apple-touch-icon" href="/icons/icon-192.png" />
+    <style id="expo-reset">
+      html,
+      body {
+        height: 100%;
+        background: #0e0f12;
+      }
+      body {
+        overflow: hidden;
+        margin: 0;
+        -webkit-font-smoothing: antialiased;
+        font-variant-numeric: tabular-nums;
+      }
+      #root {
+        display: flex;
+        height: 100%;
+        flex: 1;
+      }
+      #boot-splash {
+        position: fixed;
+        inset: 0;
+        z-index: 9999;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        gap: 14px;
+        background: #0e0f12;
+        color: #fff;
+        font-family: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+        transition: opacity 0.3s ease;
+      }
+      #boot-splash img {
+        width: 72px;
+        height: 72px;
+        border-radius: 20px;
+      }
+      #boot-splash .name {
+        font-size: 20px;
+        font-weight: 700;
+      }
+      #boot-splash .tag {
+        font-size: 14px;
+        color: rgba(255, 255, 255, 0.65);
+      }
+    </style>
+  </head>
+  <body>
+    <noscript>You need to enable JavaScript to run Cliper Agent.</noscript>
+    <div id="boot-splash" aria-label="Cliper Agent is loading">
+      <img src="/icons/icon-192.png" alt="" />
+      <div class="name">Cliper Agent</div>
+      <div class="tag">Trending videos, clipped.</div>
+    </div>
+    <div id="root"></div>
+  </body>
+</html>

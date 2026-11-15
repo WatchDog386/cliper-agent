@@ -1,0 +1,56 @@
+{
+  "expo": {
+    "name": "Cliper Agent",
+    "slug": "cliper-agent",
+    "scheme": "cliperagent",
+    "version": "1.0.0",
+    "orientation": "default",
+    "userInterfaceStyle": "dark",
+    "backgroundColor": "#0E0F12",
+    "icon": "./assets/icon.png",
+    "splash": {
+      "backgroundColor": "#0E0F12"
+    },
+    "ios": {
+      "bundleIdentifier": "com.cliperagent.app",
+      "supportsTablet": true
+    },
+    "android": {
+      "package": "com.cliperagent.app",
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/adaptive-icon.png",
+        "backgroundColor": "#0E0F12"
+      },
+      "permissions": []
+    },
+    "plugins": [
+      "expo-router",
+      "expo-secure-store",
+      "expo-font",
+      [
+        "expo-video",
+        {
+          "supportsPictureInPicture": true
+        }
+      ]
+    ],
+    "experiments": {
+      "typedRoutes": false
+    },
+    "extra": {
+      "apiUrl": "http://localhost:4000/api/v1",
+      "eas": {
+        "projectId": ""
+      }
+    },
+    "web": {
+      "bundler": "metro",
+      "output": "single",
+      "favicon": "./public/favicon.png",
+      "name": "Cliper Agent",
+      "shortName": "Cliper",
+      "themeColor": "#0E0F12",
+      "backgroundColor": "#0E0F12"
+    }
+  }
+}

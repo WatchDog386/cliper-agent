@@ -1,0 +1,103 @@
+// Cliper Agent — database schema
+// Run `npm run db:migrate` after changes.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum Role {
+  USER
+  ADMIN
+}
+
+/// Where a job is in the pipeline: fetch the source → analyse it → render the clips.
+enum JobStatus {
+  QUEUED
+  FETCHING
+  ANALYZING
+  RENDERING
+  DONE
+  FAILED
+  CANCELLED
+}
+
+enum SourceKind {
+  URL
+  UPLOAD
+}
+
+model User {
+  id             String    @id @default(cuid())
+  email          String    @unique
+  name           String
+  passwordHash   String
+  role           Role      @default(USER)
+  active         Boolean   @default(true)
+  /// Raised to sign a person out of every device.
+  sessionVersion Int       @default(0)
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+  jobs           ClipJob[]
+}
+
+/// One request to cut a source video into clips.
+model ClipJob {
+  id             String     @id @default(cuid())
+  userId         String
+  user           User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  sourceKind     SourceKind
+  /// The link that was pasted (URL jobs).
+  sourceUrl      String?
+  /// Original file name (uploads).
+  sourceName     String?
+  title          String?
+  uploader       String?
+  thumbnailUrl   String?
+  sourceDuration Float?
+  sourceWidth    Int?
+  sourceHeight   Int?
+  /// The clipping options (see src/clipper/options.ts).
+  options        Json
+  status         JobStatus  @default(QUEUED)
+  /// 0–100 for the whole job.
+  progress       Int        @default(0)
+  /// Human-readable step, e.g. "Rendering clip 3 of 8".
+  stage          String?
+  error          String?
+  createdAt      DateTime   @default(now())
+  updatedAt      DateTime   @updatedAt
+  startedAt      DateTime?
+  finishedAt     DateTime?
+  clips          Clip[]
+
+  @@index([userId, createdAt])
+  @@index([status, createdAt])
+}
+
+/// One rendered segment.
+model Clip {
+  id        String   @id @default(cuid())
+  jobId     String
+  job       ClipJob  @relation(fields: [jobId], references: [id], onDelete: Cascade)
+  /// 1-based position in the job.
+  index     Int
+  startSec  Float
+  endSec    Float
+  duration  Float
+  width     Int
+  height    Int
+  sizeBytes Int
+  /// Highlight score 0–100 (highlights mode only).
+  score     Float?
+  /// Paths relative to STORAGE_DIR.
+  file      String
+  thumb     String?
+  createdAt DateTime @default(now())
+
+  @@unique([jobId, index])
+}

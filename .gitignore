@@ -1,0 +1,28 @@
+node_modules/
+dist/
+.env
+.env.local
+*.log
+
+# Clipper storage and local tools
+backend/storage/
+backend/storage-test/
+backend/bin/
+
+# Expo
+mobile/.expo/
+mobile/web-build/
+mobile/ios/
+mobile/android/
+*.jks
+*.p8
+*.p12
+*.key
+*.mobileprovision
+
+# Production secrets & backups
+deploy/.env
+deploy/backups/
+deploy/backup.env
+
+.DS_Store
