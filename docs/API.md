@@ -151,3 +151,44 @@ Statuses: `QUEUED` (waiting for `runAt`) `→ PUBLISHING → PUBLISHED`, or `FAI
 `POST /jobs` and `POST /jobs/upload` (as a JSON form field) accept
 `autoPublish: { accountIds, caption?, title?, privacy?, everyMinutes? }`. When the job finishes, every clip is
 queued for every account, `everyMinutes` apart.
+
+## Clip options for edits
+
+Besides the options above, `options` accepts:
+
+| Field | Default | |
+|---|---|---|
+| `captions` | `false` | Burn in what is said (needs a transcription service; skipped with a note otherwise) |
+| `captionStyle` | `karaoke` | `karaoke` (spoken word lit up), `bold`, `minimal` |
+| `hook` | `none` | `none`, `custom` (with `hookText`, at most 80 characters), `auto` (written per clip) |
+| `credit` | `false` | The creator's name in a corner |
+| `normalizeAudio` | `false` | Loudness evened out to −14 LUFS |
+| `aiPick` | `false` | Best moments chosen from the transcript (needs captions and the AI key) |
+| `topic` | – | For hashtags and titles |
+
+Each clip in a job then carries `title`, `caption` (with credit and hashtags) and `transcript`.
+`GET /config` reports `features: { captions, ai, twitch, youtubeApi }`.
+
+## Scout
+
+| Method | Path | |
+|---|---|---|
+| GET | `/scout/sources` | `{ sources: { youtube: { available, mode: "api" \| "search" }, twitch: { available, mode } } }` |
+| GET | `/scout?topic=GTA 6&days=7&sources=youtube,twitch&minViews=&minSubscribers=&maxMinutes=` | `{ topic, videos, creators, notes, at }` (looked up at most every 10 min per topic) |
+
+A video: `{ id, platform, kind: "video" | "clip", url, title, creator, creatorUrl, subscribers, views, publishedAt, duration, thumbnail, score }`.
+A creator: `{ key, platform, name, url, subscribers, views, videos, score }`. `notes` says what each source found or why it could not look.
+
+## Autopilot campaigns
+
+| Method | Path | |
+|---|---|---|
+| GET | `/campaigns` | `{ campaigns }` |
+| POST | `/campaigns` | `{ name, topic, sources, days?, minViews?, minSubscribers?, maxMinutes?, videosPerRun?, everyHours?, options, autoPublish?, enabled? }` → `201 { campaign }`; the first run follows at once |
+| PUT | `/campaigns/:id` | Replace its settings → `{ campaign }` |
+| PATCH | `/campaigns/:id` | `{ enabled }` → `{ campaign }` |
+| POST | `/campaigns/:id/run` | Run now → `{ queued: [{ title, creator, url, jobId }], note, campaign }` |
+| DELETE | `/campaigns/:id` | `204`. The clips it made are kept |
+
+A campaign also reports `lastRunAt`, `nextRunAt`, `lastNote`, `videosTaken` and `recent` (the last videos it took, with their `jobId`).
+`options.mode` must be `split` or `highlights`.

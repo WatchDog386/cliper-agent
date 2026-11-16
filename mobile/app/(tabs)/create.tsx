@@ -137,6 +137,7 @@ export default function Create() {
     if (source === 'link' && !url.trim()) return setError('Paste a video link first');
     if (source === 'file' && !file) return setError('Choose a video file first');
     if (o.mode === 'custom' && !parsedRanges.length) return setError('Add at least one time range, e.g. 0:30 to 1:00');
+    if (o.hook === 'custom' && !o.hookText?.trim()) return setError('Write the hook title to show on the clips, or choose another hook option');
     setBusy(true);
     try {
       let job: Job;
@@ -376,6 +377,52 @@ export default function Create() {
         />
       </Card>
 
+      {/* ── Edits: what makes a clip ready to post ── */}
+      <Card>
+        <SectionTitle hint="Burned into every clip, so it is ready to post as it comes out">Edits</SectionTitle>
+        <ToggleRow icon="chatbox-ellipses-outline" label="Captions" hint="What is said, a few words at a time" value={o.captions} onChange={(captions) => set({ captions })} />
+        {o.captions ? (
+          <Chips
+            value={o.captionStyle}
+            onChange={(captionStyle) => set({ captionStyle })}
+            options={[
+              { value: 'karaoke', label: 'Word lights up' },
+              { value: 'bold', label: 'Bold' },
+              { value: 'minimal', label: 'Small' },
+            ]}
+          />
+        ) : null}
+        {o.captions && config && !config.features.captions ? <Notice tone="warning">This server has no transcription service yet, so clips will come out without captions. The admin can switch it on (WHISPER_URL, see docs/AUTOPILOT.md).</Notice> : null}
+        <SectionTitle hint="A title across the top for the first seconds: what stops people scrolling">Hook title</SectionTitle>
+        <Chips
+          value={o.hook}
+          onChange={(hook) => set({ hook })}
+          options={[
+            { value: 'auto', label: 'Written per clip', icon: 'sparkles-outline' },
+            { value: 'custom', label: 'My own text', icon: 'create-outline' },
+            { value: 'none', label: 'None' },
+          ]}
+        />
+        {o.hook === 'custom' ? <Input value={o.hookText ?? ''} onChangeText={(hookText) => set({ hookText })} maxLength={80} placeholder="e.g. He was NOT ready for this" /> : null}
+        {o.hook === 'auto' && config && !config.features.ai ? (
+          <Text variant="label" color={colors.textMuted}>
+            Without the AI key the hook is the first thing said in the clip, or the video's title.
+          </Text>
+        ) : null}
+        <ToggleRow icon="person-circle-outline" label="Credit the creator" hint="Their name in a corner, and in the caption" value={o.credit} onChange={(credit) => set({ credit })} />
+        <ToggleRow icon="volume-high-outline" label="Even out the sound" hint="The loudness the platforms play at" value={o.normalizeAudio} onChange={(normalizeAudio) => set({ normalizeAudio })} />
+        {o.mode === 'highlights' ? (
+          <ToggleRow
+            icon="sparkles-outline"
+            label="Choose moments by what is said"
+            hint={config && !(config.features.ai && config.features.captions) ? 'Needs the transcription service and the AI key: loudness is used until then' : 'The AI reads the whole transcript; otherwise loudness decides'}
+            value={o.aiPick}
+            onChange={(aiPick) => set({ aiPick })}
+          />
+        ) : null}
+        <Input label="Topic (for hashtags and titles)" value={o.topic ?? ''} onChangeText={(topic) => set({ topic: topic || undefined })} maxLength={80} placeholder="e.g. GTA 6" />
+      </Card>
+
       {/* ── Post automatically ── */}
       <Card>
         <SectionTitle hint={accounts.length ? 'Tick accounts to post every clip as soon as it is ready. Leave empty to post by hand later.' : 'Connect your social accounts to post clips straight from here.'}>Post automatically</SectionTitle>
@@ -417,6 +464,8 @@ export default function Create() {
           {o.mode === 'highlights' ? ' · best moments' : ''}
           {o.speed !== 1 ? ` · ${o.speed}×` : ''}
           {o.mute ? ' · no sound' : ''}
+          {o.captions ? ' · captions' : ''}
+          {o.hook !== 'none' ? ' · hook title' : ''}
           {autoTo.length ? ` · posted to ${autoTo.length} account${autoTo.length === 1 ? '' : 's'}` : ''}
         </Text>
         {error ? <Notice tone="danger">{error}</Notice> : null}

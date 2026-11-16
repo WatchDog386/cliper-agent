@@ -112,8 +112,9 @@ publicationsRouter.post(
         userId,
         clipId: clip.id,
         accountId: account.id,
-        title: (fill(body.title) || (clips.length > 1 ? `${jobTitle} (${clip.index})` : jobTitle)).slice(0, 200),
-        caption: fill(body.caption),
+        // No text given: the clip's own ready-to-post title and caption
+        title: (fill(body.title) || clip.title || (clips.length > 1 ? `${jobTitle} (${clip.index})` : jobTitle)).slice(0, 200),
+        caption: fill(body.caption) || clip.caption || '',
         privacy: body.privacy,
         runAt: new Date(first.getTime() + i * body.everyMinutes * 60_000),
       }));

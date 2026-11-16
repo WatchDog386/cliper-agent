@@ -52,8 +52,8 @@ export function ClipCard({ clip, onDownload, onDelete, onPublish, posted, width 
       </View>
       <View style={styles.meta}>
         <View style={{ flex: 1 }}>
-          <Text variant="title" style={{ fontFamily: fonts.semibold }}>
-            Clip {clip.index}
+          <Text variant="title" numberOfLines={2} style={{ fontFamily: fonts.semibold }}>
+            {clip.title ?? `Clip ${clip.index}`}
           </Text>
           <Text variant="label" color={colors.textMuted}>
             {clock(clip.startSec)}–{clock(clip.endSec)} · {clip.width}×{clip.height} · {bytes(clip.sizeBytes)}

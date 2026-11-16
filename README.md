@@ -29,6 +29,10 @@ they'll be watched:
 - **Live progress**: download, analyse, clip, with a percentage and a step indicator. Jobs can be cancelled or retried.
 - **Clip gallery**: each clip is shown at its true shape and plays inline. Download clips one at a time or **all as a .zip**. On phones, the share sheet saves to the gallery or posts directly.
 - **Re-clip in one tap**: "Make desktop version" / "Make phone version" of the same video.
+- **Scout**: type a topic (a game, a streamer, an event) and see the videos and creators most worth clipping right now, ranked by momentum, views and audience, from YouTube and Twitch.
+- **Autopilot**: a standing order such as "every 6 hours, clip the 3 best new GTA 6 videos and post them an hour apart". Finds, downloads, clips, edits, writes the post and publishes. Guide: [docs/AUTOPILOT.md](docs/AUTOPILOT.md).
+- **Edits that make clips ready to post**: burned-in captions (the spoken word lights up), a hook title, the creator's credit, even loudness.
+- **Post text written for you**: every clip gets a title and a caption with credit and hashtags, by Claude when an API key is set.
 - **Post to your channels**: connect YouTube, TikTok, Instagram, Facebook Pages, X and LinkedIn once, then post a clip (or all of them) to several accounts in one go. Post now, schedule, or space clips out over hours or days. Setup: [docs/SOCIAL.md](docs/SOCIAL.md).
 - **Post automatically**: tick accounts when you start a job and every clip is posted as soon as it is ready.
 - **Fast**: clips of one video render side by side, and a graphics card (NVIDIA, Intel, AMD) is used when the server has one.
@@ -48,10 +52,12 @@ they'll be watched:
                                          ├─ yt-dlp   → download the source (≤ chosen quality)
                                          ├─ ffprobe  → length, size, sound
                                          ├─ ffmpeg   → loudness per second (best-moments mode)
-                                         └─ ffmpeg   → each clip: trim → reframe → speed/fade → H.264/AAC + thumbnail
+                                         ├─ whisper  → what is said (captions; optional)
+                                         ├─ claude   → hook, title, caption, hashtags (optional)
+                                         └─ ffmpeg   → each clip: trim → reframe → captions/hook/credit → H.264/AAC + thumbnail
 ```
 
-Details: [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) · API: [docs/API.md](docs/API.md) · Social accounts: [docs/SOCIAL.md](docs/SOCIAL.md) · Proxmox: [docs/PROXMOX.md](docs/PROXMOX.md)
+Details: [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) · API: [docs/API.md](docs/API.md) · Scout, edits and autopilot: [docs/AUTOPILOT.md](docs/AUTOPILOT.md) · Social accounts: [docs/SOCIAL.md](docs/SOCIAL.md) · Proxmox: [docs/PROXMOX.md](docs/PROXMOX.md)
 
 ## Repository layout
 
@@ -128,6 +134,9 @@ SKIP_DB=1 npx vitest run test/plan.test.ts   # planner / filter unit tests only
 | `VIDEO_ENCODER` | `libx264` | `h264_nvenc`, `h264_qsv` or `h264_vaapi` with a graphics card (falls back to `libx264`) |
 | `PUBLIC_URL` | – | The site's public https address; needed to connect social accounts |
 | `YOUTUBE_CLIENT_ID` … `LINKEDIN_CLIENT_SECRET` | – | Developer-app keys per platform ([docs/SOCIAL.md](docs/SOCIAL.md)) |
+| `CAPTIONS` / `WHISPER_URL` | – | Speech-to-text for captions: `CAPTIONS=local` (bundled container) or a hosted service's address |
+| `ANTHROPIC_API_KEY` | – | Claude writes hooks, titles, captions and hashtags, and can pick moments from the transcript |
+| `TWITCH_CLIENT_ID` / `TWITCH_CLIENT_SECRET` | – | Lets Scout rank Twitch clips and streamers |
 | `TOKEN_ENCRYPTION_KEY` | from `JWT_SECRET` | Encrypts stored social-account tokens |
 | `YOUTUBE_API_KEY` | – | Enables YouTube's real trending chart in the Trending tab |
 | `TRENDING_REGION` | `US` | Country for the trending chart |

@@ -44,6 +44,7 @@ model User {
   updatedAt      DateTime        @updatedAt
   jobs           ClipJob[]
   socialAccounts SocialAccount[]
+  campaigns      Campaign[]
   publications   Publication[]
 }
 
@@ -101,6 +102,11 @@ model Clip {
   /// Paths relative to STORAGE_DIR.
   file         String
   thumb        String?
+  /// Ready-to-post text written for this clip (a hook title, and a caption with credit and hashtags).
+  title        String?
+  caption      String?
+  /// What is said in the clip (from the captions).
+  transcript   String?
   createdAt    DateTime      @default(now())
   publications Publication[]
 
@@ -192,4 +198,57 @@ model Publication {
   @@index([userId, createdAt])
   @@index([status, runAt])
   @@index([clipId])
+}
+
+/// Autopilot: on a schedule, find the best new videos about a topic and clip them.
+model Campaign {
+  id             String         @id @default(cuid())
+  userId         String
+  user           User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  name           String
+  /// What to look for: a game, a person, an event ("GTA 6").
+  topic          String
+  /// youtube · twitch
+  sources        String[]
+  /// Only videos published in the last N days.
+  days           Int            @default(3)
+  minViews       Int            @default(0)
+  minSubscribers Int            @default(0)
+  /// Skip sources longer than this (minutes).
+  maxMinutes     Int            @default(60)
+  /// New videos clipped per run.
+  videosPerRun   Int            @default(3)
+  everyHours     Int            @default(6)
+  /// Clipping options for every job (src/clipper/options.ts).
+  options        Json
+  /// Post the clips automatically (src/social/autopublish.ts). Null: clips wait for review.
+  autoPublish    Json?
+  enabled        Boolean        @default(true)
+  lastRunAt      DateTime?
+  nextRunAt      DateTime       @default(now())
+  /// What the last run did, in words.
+  lastNote       String?
+  createdAt      DateTime       @default(now())
+  updatedAt      DateTime       @updatedAt
+  items          CampaignItem[]
+
+  @@index([userId])
+  @@index([enabled, nextRunAt])
+}
+
+/// A video a campaign has already taken, so it is never clipped twice.
+model CampaignItem {
+  id         String   @id @default(cuid())
+  campaignId String
+  campaign   Campaign @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+  url        String
+  platform   String
+  title      String
+  creator    String?
+  views      Int?
+  score      Float?
+  jobId      String?
+  createdAt  DateTime @default(now())
+
+  @@unique([campaignId, url])
 }

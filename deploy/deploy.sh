@@ -38,8 +38,14 @@ case "$(setting GPU)" in
     fi ;;
 esac
 PROFILES=""
+# Captions made on this server: start the Whisper container and point the API at it
+if [ "$(setting CAPTIONS)" = "local" ]; then
+  PROFILES="$PROFILES --profile captions"
+  if [ -z "$(setting WHISPER_URL)" ]; then export WHISPER_URL="http://whisper:8000/v1"; fi
+  echo "▶ Captions: local Whisper container"
+fi
 if [ -n "$(setting TUNNEL_TOKEN)" ]; then
-  PROFILES="--profile tunnel"
+  PROFILES="$PROFILES --profile tunnel"
   echo "▶ Cloudflare Tunnel: on"
 fi
 

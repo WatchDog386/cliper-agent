@@ -6,10 +6,13 @@ import { prisma } from '../lib/prisma';
 import { jobDir, toStored } from '../lib/storage';
 import { ToolError } from '../lib/tools';
 import { queueAutoPublish } from '../social/autopublish';
-import { renderParallel } from './encoder';
+import { aiAvailable, pickMoments, writeCopy } from '../ai/copy';
+import { canDrawText, renderParallel } from './encoder';
+import { buildAss, type Word } from './overlay';
+import { captionsAvailable, sliceWords, transcribe, wordsToText } from './transcribe';
 import { loudnessPerSecond, probe, renderClip, thumbnail } from './media';
-import { optionsSchema } from './options';
-import { planSegments } from './plan';
+import { frameSize, optionsSchema } from './options';
+import { planSegments, usableWindow, type Segment } from './plan';
 import { downloadSource, fetchMeta, ytdlpReason } from './source';
 
 /*
@@ -113,7 +116,7 @@ export async function processJob(id: string, signal: AbortSignal) {
     // A retry starts from a clean slate (but keeps an uploaded source)
     await prisma.clip.deleteMany({ where: { jobId: id } });
     await fs.promises.mkdir(dir, { recursive: true });
-    for (const f of await fs.promises.readdir(dir)) if (/^clip-\d+\.(mp4|jpg)$/.test(f)) await fs.promises.rm(path.join(dir, f), { force: true });
+    for (const f of await fs.promises.readdir(dir)) if (/^(clip-\d+\.(mp4|jpg|ass)|speech-.*\.mp3)$/.test(f)) await fs.promises.rm(path.join(dir, f), { force: true });
 
     // ── 1. Source ──
     const fetchShare = job.sourceKind === 'URL' ? 35 : 3;
@@ -124,7 +127,7 @@ export async function processJob(id: string, signal: AbortSignal) {
       if (meta.duration && meta.duration > env.MAX_SOURCE_MINUTES * 60) throw new Error(`This video is longer than ${env.MAX_SOURCE_MINUTES} minutes`);
       await prisma.clipJob.update({
         where: { id },
-        data: { title: job.title ?? meta.title, uploader: meta.uploader, thumbnailUrl: job.thumbnailUrl ?? meta.thumbnail, sourceDuration: meta.duration },
+        data: { title: job.title ?? meta.title, uploader: meta.uploader ?? job.uploader, thumbnailUrl: job.thumbnailUrl ?? meta.thumbnail, sourceDuration: meta.duration },
       });
       await report(JobStatus.FETCHING, 3, 'Downloading the video', true);
       const maxHeight = Math.max(Number(o.quality), 720);
@@ -142,17 +145,79 @@ export async function processJob(id: string, signal: AbortSignal) {
     await prisma.clipJob.update({ where: { id }, data: { sourceDuration: info.duration, sourceWidth: info.width, sourceHeight: info.height } });
 
     // ── 3. Plan the clips ──
-    let loudness: number[] = [];
+    const fresh = await prisma.clipJob.findUniqueOrThrow({ where: { id }, select: { title: true, uploader: true, sourceName: true } });
+    const videoTitle = fresh.title ?? fresh.sourceName ?? 'Video';
+    const creator = fresh.uploader;
+    const notes: string[] = [];
+    const wantWords = (o.captions || o.hook === 'auto') && info.hasAudio;
     const analyseShare = o.mode === 'highlights' ? 12 : 0;
-    if (o.mode === 'highlights' && info.hasAudio) {
-      await report(JobStatus.ANALYZING, fetchShare, 'Finding the best moments', true);
-      loudness = await loudnessPerSecond(sourceFile, info.duration, (f) => soft(JobStatus.ANALYZING, fetchShare + f * analyseShare, `Finding the best moments · ${Math.round(f * 100)}%`), signal);
+    const wordShare = wantWords ? 10 : 0;
+    const base = fetchShare + analyseShare + wordShare;
+
+    let segments: Segment[] | null = null;
+    /** Every word of the video (only when the moments are chosen from what is said). */
+    let allWords: Word[] | null = null;
+    if (o.mode === 'highlights' && o.aiPick && info.hasAudio) {
+      if (!captionsAvailable() || !aiAvailable()) notes.push('moments chosen by loudness (choosing by what is said needs the transcription service and the AI key)');
+      else {
+        const { from, to } = usableWindow(info.duration, o);
+        await report(JobStatus.ANALYZING, fetchShare, 'Listening to the whole video', true);
+        try {
+          allWords = (await transcribe(sourceFile, from, to - from, dir, 'all', signal, (f) => soft(JobStatus.ANALYZING, fetchShare + f * analyseShare * 0.8, `Listening to the whole video · ${Math.round(f * 100)}%`))).map((w) => ({
+            ...w,
+            start: w.start + from,
+            end: w.end + from,
+          }));
+          await report(JobStatus.ANALYZING, fetchShare + analyseShare * 0.8, 'Choosing the best moments', true);
+          const seconds = Math.min(o.segmentSeconds, to - from);
+          segments = await pickMoments(allWords, { from, to, seconds, count: Math.max(1, Math.min(o.maxClips, Math.floor((to - from) / seconds))), videoTitle, topic: o.topic ?? null }, signal);
+          if (!segments) notes.push('moments chosen by loudness (the AI could not choose them)');
+        } catch (e) {
+          if (signal.aborted) throw e;
+          notes.push(`moments chosen by loudness (${e instanceof Error ? e.message : 'transcription failed'})`);
+        }
+      }
     }
-    const segments = planSegments(info.duration, o, loudness).slice(0, env.MAX_CLIPS_PER_JOB);
+    if (!segments) {
+      let loudness: number[] = [];
+      if (o.mode === 'highlights' && info.hasAudio) {
+        await report(JobStatus.ANALYZING, fetchShare, 'Finding the best moments', true);
+        loudness = await loudnessPerSecond(sourceFile, info.duration, (f) => soft(JobStatus.ANALYZING, fetchShare + f * analyseShare, `Finding the best moments · ${Math.round(f * 100)}%`), signal);
+      }
+      segments = planSegments(info.duration, o, loudness);
+    }
+    segments = segments.slice(0, env.MAX_CLIPS_PER_JOB);
     if (!segments.length) throw new Error('Nothing to clip: check the start / end times and ranges against the video length');
 
+    // ── 3b. What is said in each clip (captions, and material for the titles) ──
+    const words: Word[][] = segments.map(() => []);
+    if (wantWords) {
+      if (allWords) segments.forEach((seg, i) => (words[i] = sliceWords(allWords!, seg.start, seg.end)));
+      else if (!captionsAvailable()) notes.push('no captions (the transcription service is not set up)');
+      else {
+        await report(JobStatus.ANALYZING, fetchShare + analyseShare, 'Writing the captions', true);
+        try {
+          for (let i = 0; i < segments.length; i++) {
+            const seg = segments[i]!;
+            words[i] = await transcribe(sourceFile, seg.start, seg.end - seg.start, dir, String(i + 1), signal);
+            soft(JobStatus.ANALYZING, fetchShare + analyseShare + ((i + 1) / segments.length) * wordShare, `Writing the captions · clip ${i + 1} of ${segments.length}`);
+          }
+        } catch (e) {
+          if (signal.aborted) throw e;
+          notes.push(`no captions (${e instanceof Error ? e.message : 'transcription failed'})`);
+        }
+      }
+    }
+    const transcripts = words.map(wordsToText);
+    if (!canDrawText() && (o.captions || o.hook !== 'none' || o.credit)) notes.push('no text on the clips (this ffmpeg was built without libass)');
+
+    // ── 3c. The text that goes with each clip: hook, post title, caption with credit and hashtags ──
+    const tall = frameSize(o.aspect, o.quality, info).height > frameSize(o.aspect, o.quality, info).width;
+    const written = await writeCopy({ videoTitle, creator, topic: o.topic ?? null, vertical: tall }, transcripts, signal);
+    if (written.note) notes.push(`titles built from the video's title (${written.note})`);
+    const copy = written.copy;
+
     // ── 4. Render ── several clips at once on bigger machines (see encoder.ts)
-    const base = fetchShare + analyseShare;
     const total = segments.length;
     const fractions = new Array<number>(total).fill(0);
     let finished = 0;
@@ -164,6 +229,21 @@ export async function processJob(id: string, signal: AbortSignal) {
       const seg = segments[i]!;
       const n = String(i + 1).padStart(2, '0');
       const out = path.join(dir, `clip-${n}.mp4`);
+      // Captions, title and credit, drawn by ffmpeg from a subtitle file next to the clip
+      const size = frameSize(o.aspect, o.quality, info);
+      const ass = !canDrawText() ? null : buildAss({
+        width: size.width,
+        height: size.height,
+        duration: (seg.end - seg.start) / o.speed,
+        speed: o.speed,
+        words: o.captions ? words[i] : [],
+        style: o.captionStyle,
+        hook: o.hook === 'custom' ? o.hookText : o.hook === 'auto' ? copy[i]?.hook : null,
+        credit: o.credit ? creator : null,
+        font: env.CAPTION_FONT,
+      });
+      const overlay = ass ? path.join(dir, `clip-${n}.ass`) : undefined;
+      if (overlay) await fs.promises.writeFile(overlay, ass!);
       const r = await renderClip(
         sourceFile!,
         info,
@@ -175,7 +255,9 @@ export async function processJob(id: string, signal: AbortSignal) {
           soft(JobStatus.RENDERING, overall(), `${label()} · ${Math.round(((overall() - base) / (99 - base)) * 100)}%`);
         },
         signal,
+        overlay,
       );
+      if (overlay) await fs.promises.rm(overlay, { force: true });
       const thumb = path.join(dir, `clip-${n}.jpg`);
       const hasThumb = await thumbnail(out, r.duration, thumb, signal).then(
         () => true,
@@ -192,6 +274,9 @@ export async function processJob(id: string, signal: AbortSignal) {
           height: r.height,
           sizeBytes: r.sizeBytes,
           score: seg.score ?? null,
+          title: copy[i]?.title ?? null,
+          caption: copy[i]?.caption ?? null,
+          transcript: transcripts[i] || null,
           file: toStored(out),
           thumb: hasThumb ? toStored(thumb) : null,
         },
@@ -220,7 +305,7 @@ export async function processJob(id: string, signal: AbortSignal) {
 
     await prisma.clipJob.update({
       where: { id },
-      data: { status: JobStatus.DONE, progress: 100, stage: `${segments.length} clip${segments.length === 1 ? '' : 's'} ready`, finishedAt: new Date() },
+      data: { status: JobStatus.DONE, progress: 100, stage: `${segments.length} clip${segments.length === 1 ? '' : 's'} ready${notes.length ? ` · ${notes.join(' · ')}` : ''}`.slice(0, 480), finishedAt: new Date() },
     });
     // A link can be fetched again; an upload cannot, so its source is kept (until the job is deleted)
     if (job.sourceKind === 'URL' && !env.KEEP_SOURCE && sourceFile) await fs.promises.rm(sourceFile, { force: true });

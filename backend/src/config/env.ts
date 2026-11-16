@@ -68,6 +68,26 @@ const schema = z.object({
   PUBLIC_URL: z.string().default('').transform((v) => v.replace(/\/+$/, '')),
   /** Key that encrypts the social-account tokens in the database. Empty: derived from JWT_SECRET. */
   TOKEN_ENCRYPTION_KEY: z.string().default(''),
+  /*
+   * Captions. Speech is turned into timed words by a Whisper server that speaks the OpenAI
+   * "audio/transcriptions" protocol: the bundled `whisper` container, or a hosted one (OpenAI, Groq).
+   * Empty: clips are made without captions.
+   */
+  WHISPER_URL: z.string().default('').transform((v) => v.replace(/\/+$/, '')),
+  WHISPER_API_KEY: z.string().default(''),
+  WHISPER_MODEL: z.string().default('Systran/faster-whisper-small'),
+  /** Font for captions and titles burned into clips (must be installed on the server). */
+  CAPTION_FONT: z.string().default('Inter'),
+  /*
+   * Claude writes each clip's hook, title, caption and hashtags and can pick the best moments from
+   * what is said. Empty key: titles and hashtags are built from the video's own title instead.
+   */
+  ANTHROPIC_API_KEY: z.string().default(''),
+  AI_MODEL: z.string().default('claude-opus-5-5'),
+  /** Twitch app (dev.twitch.tv): lets Scout rank Twitch clips and streamers. */
+  TWITCH_CLIENT_ID: z.string().default(''),
+  TWITCH_CLIENT_SECRET: z.string().default(''),
+
   /** Posts uploaded to the platforms at the same time. */
   PUBLISH_CONCURRENCY: z.coerce.number().int().min(1).max(8).default(2),
 

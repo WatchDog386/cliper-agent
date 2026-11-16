@@ -20,7 +20,7 @@ const TABS: Record<string, { label: string; icon: Icon; iconOn: Icon }> = {
   create: { label: 'Create', icon: 'add-circle-outline', iconOn: 'add-circle' },
   library: { label: 'My clips', icon: 'film-outline', iconOn: 'film' },
   channels: { label: 'Channels', icon: 'share-social-outline', iconOn: 'share-social' },
-  discover: { label: 'Trending', icon: 'flame-outline', iconOn: 'flame' },
+  discover: { label: 'Scout', icon: 'telescope-outline', iconOn: 'telescope' },
   settings: { label: 'Settings', icon: 'settings-outline', iconOn: 'settings' },
 };
 

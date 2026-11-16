@@ -7,6 +7,9 @@ import { scheduleRetention } from './clipper/retention';
 import { checkTools } from './lib/tools';
 import { detectEncoder } from './clipper/encoder';
 import { startPublisher, stopPublisher } from './social/publisher';
+import { startAutopilot, stopAutopilot } from './autopilot/runner';
+import { captionsAvailable } from './clipper/transcribe';
+import { aiAvailable } from './ai/copy';
 import { PLATFORMS, providers } from './social/providers';
 
 export function startServer() {
@@ -30,9 +33,12 @@ export function startServer() {
     .then((e) => {
       console.log(`   ✔ encoder ${e.active}${e.hardware ? ' (hardware)' : ''} · ${e.parallel} clip(s) at a time`);
       if (e.note) console.warn(`   ⚠ ${e.note}`);
+      if (!e.drawsText) console.warn('   ⚠ this ffmpeg has no libass: captions, hook titles and credits cannot be drawn');
     })
     .finally(() => startQueue());
   startPublisher();
+  startAutopilot();
+  console.log(`   ${captionsAvailable() ? '✔ captions on' : '· captions off (set WHISPER_URL)'} · ${aiAvailable() ? '✔ AI titles on' : 'AI titles off (set ANTHROPIC_API_KEY)'}`);
   scheduleRetention();
   const social = PLATFORMS.filter((p) => providers[p].configured());
   console.log(social.length ? `   ✔ posting to: ${social.map((p) => providers[p].label).join(', ')}` : '   · no social platforms set up yet (docs/SOCIAL.md)');
@@ -43,6 +49,7 @@ export function startServer() {
     server.close();
     await stopQueue();
     await stopPublisher();
+    stopAutopilot();
     await prisma.$disconnect();
     process.exit(0);
   };

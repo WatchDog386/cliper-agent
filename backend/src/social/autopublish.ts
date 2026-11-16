@@ -11,7 +11,8 @@ export const autoPublishSchema = z.object({
   accountIds: z.array(z.string().min(1)).min(1).max(20),
   /** Text for every post; {n} becomes the clip number, {title} the video's title. */
   caption: z.string().max(5000).default(''),
-  title: z.string().max(200).default('{title} ({n})'),
+  /** Empty: each clip's own title. */
+  title: z.string().max(200).default(''),
   privacy: z.enum(['public', 'unlisted', 'private']).default('public'),
   everyMinutes: z.number().int().min(0).max(7 * 24 * 60).default(0),
 });
@@ -36,8 +37,9 @@ export async function queueAutoPublish(jobId: string): Promise<number> {
       userId: job.userId,
       clipId: clip.id,
       accountId: account.id,
-      title: fillTemplate(plan.title, { n: clip.index, title }).slice(0, 200) || title.slice(0, 200),
-      caption: fillTemplate(plan.caption, { n: clip.index, title }),
+      // Text written for this post wins; otherwise the clip's own ready-to-post title and caption
+      title: (fillTemplate(plan.title, { n: clip.index, title }) || clip.title || `${title} (${clip.index})`).slice(0, 200),
+      caption: fillTemplate(plan.caption, { n: clip.index, title }) || clip.caption || '',
       privacy: plan.privacy,
       runAt: new Date(now + i * plan.everyMinutes * 60_000),
     })),

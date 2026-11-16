@@ -44,8 +44,26 @@ export const optionsSchema = z
     mute: z.boolean().default(false),
     /** Playback speed of the clip (0.5–2×). */
     speed: z.number().min(0.5).max(2).default(1),
+
+    /* ── Edits that make a clip ready to post ── */
+    /** Burn what is said into the picture, a few words at a time. */
+    captions: z.boolean().default(false),
+    /** bold: big upper-case words · karaoke: the spoken word lights up · minimal: small, sentence case */
+    captionStyle: z.enum(['bold', 'karaoke', 'minimal']).default('karaoke'),
+    /** A title across the top for the first seconds: none, the same text on every clip, or written per clip. */
+    hook: z.enum(['none', 'custom', 'auto']).default('none'),
+    hookText: z.string().trim().max(80).optional(),
+    /** Show who made the original ("🎥 name") in a corner for the whole clip. */
+    credit: z.boolean().default(false),
+    /** Even out loudness to the level the platforms play at (−14 LUFS). */
+    normalizeAudio: z.boolean().default(false),
+    /** Best moments chosen from what is said (needs captions and the AI key); otherwise by loudness. */
+    aiPick: z.boolean().default(false),
+    /** What the video is about, for hashtags and titles ("GTA 6"). */
+    topic: z.string().trim().max(80).optional(),
   })
   .refine((o) => o.endAt === undefined || o.startAt === undefined || o.endAt > o.startAt, { message: 'End must be after start', path: ['endAt'] })
+  .refine((o) => o.hook !== 'custom' || Boolean(o.hookText), { message: 'Write the title to show on the clips', path: ['hookText'] })
   .refine((o) => o.mode !== 'custom' || (o.ranges?.length ?? 0) > 0, { message: 'Add at least one time range', path: ['ranges'] });
 
 export type ClipOptions = z.infer<typeof optionsSchema>;

@@ -1,4 +1,5 @@
 import fs from 'node:fs';
+import path from 'node:path';
 import { run, tools } from '../lib/tools';
 import { encoderFilterTail, encoderInputArgs, encoderOutputArgs } from './encoder';
 import { buildFilterGraph, type SourceInfo } from './filters';
@@ -72,9 +73,11 @@ export async function renderClip(
   out: string,
   onProgress: (fraction: number) => void,
   signal?: AbortSignal,
+  /** ASS overlay written next to `out` (see overlay.ts). */
+  overlay?: string,
 ) {
   const length = seg.end - seg.start;
-  const g = buildFilterGraph(src, o, length, encoderFilterTail());
+  const g = buildFilterGraph(src, o, length, encoderFilterTail(), overlay ? path.basename(overlay) : undefined);
   const args = [
     '-hide_banner',
     '-nostdin',
@@ -102,6 +105,8 @@ export async function renderClip(
   await run(tools.ffmpeg, args, {
     signal,
     collect: false,
+    // The overlay is named without its folder: no escaping of odd characters in storage paths
+    cwd: overlay ? path.dirname(overlay) : undefined,
     onStdout: (l) => {
       // out_time_us (older ffmpeg: out_time_ms, also in microseconds)
       const m = /^out_time_(?:us|ms)=(\d+)/.exec(l);

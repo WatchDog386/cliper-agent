@@ -17,6 +17,12 @@ codebase) with the template's "glass" design system, and a Docker + Caddy produc
 | `social/publisher.ts` | The posting queue (scheduled posts, retries) |
 | `social/autopublish.ts` | Queues a finished job's clips for the accounts chosen at creation |
 | `lib/secret-box.ts` | AES-256-GCM encryption of the stored account tokens |
+| `modules/scout` | `GET /scout` (ranked videos and creators) and the Autopilot campaigns |
+| `scout/*` | Sources (YouTube Data API, Twitch Helix, yt-dlp search) and the ranking (pure, unit-tested) |
+| `autopilot/runner.ts` | Runs due campaigns: scout → drop what was already taken → queue clip jobs |
+| `ai/copy.ts` | Claude: hook, title, caption and hashtags per clip; moments from a transcript. Non-AI fallbacks |
+| `clipper/transcribe.ts` | Speech → timed words through a Whisper server (OpenAI protocol) |
+| `clipper/overlay.ts` | Captions, hook title and credit as an ASS file for ffmpeg/libass (pure, unit-tested) |
 | `modules/media` | Clip video (range requests), thumbnails, downloads, zip of all clips (signed links) |
 | `clipper/options.ts` | The options schema and output frame sizes |
 | `clipper/plan.ts` | Which segments to cut: split / highlights / custom (pure functions, unit-tested) |
@@ -54,6 +60,14 @@ QUEUED ──claim──► FETCHING ──► ANALYZING ──► RENDERING ─
   Every window is scored `mean + 0.15 × spread` (prefix sums, O(n)), and the best non-overlapping windows are
   kept and returned in time order with a 0–100 score. With no usable audio, clips are spread evenly.
 * **Custom**: the listed ranges, clamped to the video and sorted.
+
+### Edits and post text
+
+After the segments are planned: the words of each clip are fetched (captions on, or a hook to write), the text
+for all clips is written in one request (or built from the video's title), and each clip is rendered with an ASS
+overlay drawn after the speed change and before the fades. ffmpeg runs inside the job's folder so the overlay is
+named without a path. Every optional helper degrades instead of failing the job: the finished job's stage line
+carries a note such as *no captions (the transcription service is not set up)*. Details: [AUTOPILOT.md](AUTOPILOT.md).
 
 ### Rendering
 

@@ -1,7 +1,7 @@
 import { create } from 'zustand';
 import type { ClipOptions } from '../api/types';
 
-/** Default clipping settings: 30-second phone clips with a blurred background. */
+/** Default clipping settings: 30-second phone clips with a blurred background, edited ready to post. */
 export const DEFAULT_OPTIONS: ClipOptions = {
   mode: 'split',
   segmentSeconds: 30,
@@ -13,13 +13,20 @@ export const DEFAULT_OPTIONS: ClipOptions = {
   fade: false,
   mute: false,
   speed: 1,
+  // Ready to post out of the box: captions, a title, the creator's credit, even loudness
+  captions: true,
+  captionStyle: 'karaoke',
+  hook: 'auto',
+  credit: true,
+  normalizeAudio: true,
+  aiPick: false,
 };
 
 const KEY = 'cliper.defaults';
 function saved(): ClipOptions {
   try {
     const raw = typeof localStorage !== 'undefined' ? localStorage.getItem(KEY) : null;
-    if (raw) return { ...DEFAULT_OPTIONS, ...(JSON.parse(raw) as Partial<ClipOptions>), startAt: undefined, endAt: undefined, ranges: undefined };
+    if (raw) return { ...DEFAULT_OPTIONS, ...(JSON.parse(raw) as Partial<ClipOptions>), startAt: undefined, endAt: undefined, ranges: undefined, topic: undefined };
   } catch {
     /* ignore */
   }
@@ -33,6 +40,7 @@ interface DraftState {
   thumbnail?: string;
   options: ClipOptions;
   setUrl: (url: string, extra?: { title?: string; thumbnail?: string }) => void;
+
   setOptions: (patch: Partial<ClipOptions>) => void;
   remember: () => void;
 }
@@ -45,7 +53,7 @@ export const useDraft = create<DraftState>((set, get) => ({
   /** Keep this device's last settings (not the trim) as the starting point next time. */
   remember: () => {
     try {
-      const { startAt: _s, endAt: _e, ranges: _r, ...rest } = get().options;
+      const { startAt: _s, endAt: _e, ranges: _r, topic: _t, ...rest } = get().options;
       localStorage.setItem(KEY, JSON.stringify(rest));
     } catch {
       /* native or private mode */

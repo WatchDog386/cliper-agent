@@ -15,7 +15,14 @@ const fixed = (n: number) => Number(n.toFixed(3)).toString();
  * chosen view (crop / blurred background / bars), sped up or slowed down, with optional fades.
  * Produces the labels [v] and, when there is sound to keep, [a].
  */
-export function buildFilterGraph(src: SourceInfo, o: Pick<ClipOptions, 'aspect' | 'fit' | 'focus' | 'quality' | 'fade' | 'mute' | 'speed'>, segmentSeconds: number, pixelTail = 'format=yuv420p') {
+export function buildFilterGraph(
+  src: SourceInfo,
+  o: Pick<ClipOptions, 'aspect' | 'fit' | 'focus' | 'quality' | 'fade' | 'mute' | 'speed'> & Partial<Pick<ClipOptions, 'normalizeAudio'>>,
+  segmentSeconds: number,
+  pixelTail = 'format=yuv420p',
+  /** An ASS file (captions, title, credit) to draw, named relative to the folder ffmpeg runs in. */
+  overlayFile?: string,
+) {
   const { width: W, height: H } = frameSize(o.aspect, o.quality, src);
   const f = FOCUS[o.focus];
   const outDuration = segmentSeconds / o.speed;
@@ -23,6 +30,8 @@ export function buildFilterGraph(src: SourceInfo, o: Pick<ClipOptions, 'aspect' 
 
   const tail: string[] = ['setsar=1'];
   if (o.speed !== 1) tail.push(`setpts=PTS/${fixed(o.speed)}`);
+  // Text is drawn after the speed change (its times are the finished clip's) and before the fades
+  if (overlayFile) tail.push(`ass=${overlayFile}`);
   if (o.fade) tail.push(`fade=t=in:st=0:d=${fixed(fadeLen)}`, `fade=t=out:st=${fixed(Math.max(0, outDuration - fadeLen))}:d=${fixed(fadeLen)}`);
   // The last step hands the frames to the encoder in the form it wants (see encoder.ts)
   tail.push(pixelTail);
@@ -51,6 +60,8 @@ export function buildFilterGraph(src: SourceInfo, o: Pick<ClipOptions, 'aspect' 
   if (withAudio) {
     const a: string[] = [];
     if (o.speed !== 1) a.push(`atempo=${fixed(o.speed)}`);
+    // One level for every clip, as loud as the platforms play (−14 LUFS)
+    if (o.normalizeAudio) a.push('loudnorm=I=-14:TP=-1.5:LRA=11');
     if (o.fade) a.push(`afade=t=in:st=0:d=${fixed(fadeLen)}`, `afade=t=out:st=${fixed(Math.max(0, outDuration - fadeLen))}:d=${fixed(fadeLen)}`);
     if (!a.length) a.push('anull');
     audio = `;[0:a:0]${a.join(',')}[a]`;

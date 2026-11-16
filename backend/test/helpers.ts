@@ -14,6 +14,7 @@ export async function signUp(name = 'Test User') {
 }
 
 export const resetDb = async () => {
+  await prisma.campaign.deleteMany();
   await prisma.publication.deleteMany();
   await prisma.socialAccount.deleteMany();
   await prisma.oAuthState.deleteMany();

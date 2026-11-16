@@ -48,6 +48,13 @@ services:
       VIDEO_ENCODER: ${VIDEO_ENCODER:-libx264}
       RENDER_PARALLEL: ${RENDER_PARALLEL:-0}
       PUBLIC_URL: ${PUBLIC_URL:-}
+      WHISPER_URL: ${WHISPER_URL:-}
+      WHISPER_API_KEY: ${WHISPER_API_KEY:-}
+      WHISPER_MODEL: ${WHISPER_MODEL:-Systran/faster-whisper-small}
+      ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
+      AI_MODEL: ${AI_MODEL:-claude-opus-5-5}
+      TWITCH_CLIENT_ID: ${TWITCH_CLIENT_ID:-}
+      TWITCH_CLIENT_SECRET: ${TWITCH_CLIENT_SECRET:-}
       TOKEN_ENCRYPTION_KEY: ${TOKEN_ENCRYPTION_KEY:-}
       PUBLISH_CONCURRENCY: ${PUBLISH_CONCURRENCY:-2}
       YOUTUBE_CLIENT_ID: ${YOUTUBE_CLIENT_ID:-}
@@ -111,6 +118,18 @@ services:
     entrypoint: ["sh", "/backup.sh", "loop"]
     networks: [internal]
 
+  # Optional: speech-to-text for captions on this server (CAPTIONS=local in deploy/.env; deploy.sh then
+  # starts this and points the API at it). The model is downloaded on first use and kept in a volume.
+  whisper:
+    image: fedirz/faster-whisper-server:latest-cpu
+    profiles: [captions]
+    restart: unless-stopped
+    environment:
+      WHISPER__MODEL: ${WHISPER_MODEL:-Systran/faster-whisper-small}
+    volumes:
+      - whisper_models:/root/.cache/huggingface
+    networks: [internal]
+
   # Optional: reach the server from the internet without opening ports (set TUNNEL_TOKEN in deploy/.env;
   # deploy.sh then starts this). The tunnel's public hostname must point at http://web:80.
   tunnel:
@@ -124,6 +143,7 @@ services:
     networks: [internal]
 
 volumes:
+  whisper_models:
   pgdata:
   storage:
   caddy_data:

@@ -14,7 +14,8 @@ RUN npm run build && npm prune --omit=dev --omit=optional
 # ── Runtime ────────────────────────────────────────────
 FROM node:22-alpine
 # ffmpeg/ffprobe render the clips; yt-dlp (with Python) fetches videos from links
-RUN apk add --no-cache openssl tini ffmpeg python3 py3-pip \
+# fontconfig + Inter: the font captions and titles are drawn in
+RUN apk add --no-cache openssl tini ffmpeg python3 py3-pip fontconfig font-inter \
  && pip install --no-cache-dir --break-system-packages "yt-dlp[default]" \
  && apk del py3-pip
 WORKDIR /app

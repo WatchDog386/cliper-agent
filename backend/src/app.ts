@@ -16,10 +16,13 @@ import { mediaRouter } from './modules/media/media.routes';
 import { sourceRouter } from './modules/source/source.routes';
 import { discoverRouter } from './modules/discover/discover.routes';
 import { queueStats } from './clipper/queue';
+import { captionsAvailable } from './clipper/transcribe';
+import { aiAvailable } from './ai/copy';
 import { encoderInfo } from './clipper/encoder';
 import { socialRouter } from './modules/social/social.routes';
 import { publicationsRouter } from './modules/social/publications.routes';
 import { publisherStats } from './social/publisher';
+import { campaignsRouter, scoutRouter } from './modules/scout/scout.routes';
 import { PLATFORMS, providers } from './social/providers';
 
 export function createApp() {
@@ -85,6 +88,8 @@ export function createApp() {
       allowSignup: env.ALLOW_SIGNUP,
       limits: { maxSourceMinutes: env.MAX_SOURCE_MINUTES, maxClipsPerJob: env.MAX_CLIPS_PER_JOB, maxUploadMb: env.MAX_UPLOAD_MB },
       discover: env.YOUTUBE_API_KEY ? 'youtube-trending' : 'search',
+      /** Which optional helpers this server has. */
+      features: { captions: captionsAvailable(), ai: aiAvailable(), twitch: Boolean(env.TWITCH_CLIENT_ID && env.TWITCH_CLIENT_SECRET), youtubeApi: Boolean(env.YOUTUBE_API_KEY) },
       /** Platforms clips can be posted to from this server. */
       social: PLATFORMS.filter((p) => providers[p].configured()),
     });
@@ -105,6 +110,8 @@ export function createApp() {
   // Sign-in is checked per route: the platforms' callback arrives without a session
   api.use('/social', socialRouter);
   api.use('/publications', requireAuth, publicationsRouter);
+  api.use('/scout', requireAuth, scoutRouter);
+  api.use('/campaigns', requireAuth, campaignsRouter);
   app.use('/api/v1', api);
 
   app.use(notFoundHandler);

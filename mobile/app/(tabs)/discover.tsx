@@ -2,7 +2,10 @@ import { useCallback, useEffect, useState } from 'react';
 import { Image, Linking, Pressable, StyleSheet, View } from 'react-native';
 import { router } from 'expo-router';
 import Ionicons from '@expo/vector-icons/Ionicons';
+import { AutopilotPane } from '../../src/components/AutopilotPane';
 import { Button } from '../../src/components/Button';
+import { ScoutPane } from '../../src/components/ScoutPane';
+import { Segmented } from '../../src/components/Segmented';
 import { Input } from '../../src/components/Input';
 import { Text } from '../../src/components/Text';
 import { Card, Chips, Empty, Notice, Screen, Spinner } from '../../src/components/ui';
@@ -12,7 +15,16 @@ import { useDraft } from '../../src/store/draft';
 import { colors, fonts, radius, space } from '../../src/theme';
 import { ago, clock, compact } from '../../src/utils/format';
 
+type Pane = 'scout' | 'autopilot' | 'trending';
+const PANES: { value: Pane; label: string }[] = [
+  { value: 'scout', label: 'Scout' },
+  { value: 'autopilot', label: 'Autopilot' },
+  { value: 'trending', label: 'Trending' },
+];
+
 export default function Discover() {
+  const [pane, setPane] = useState<Pane>('scout');
+  const [campaignTopic, setCampaignTopic] = useState('');
   const [categories, setCategories] = useState<{ id: string; label: string }[]>([]);
   const [mode, setMode] = useState<'youtube-trending' | 'search'>('search');
   const [region, setRegion] = useState('US');
@@ -56,6 +68,24 @@ export default function Discover() {
     router.navigate('/create');
   };
 
+  if (pane !== 'trending') {
+    return (
+      <Screen title={pane === 'scout' ? 'Scout' : 'Autopilot'} subtitle={pane === 'scout' ? 'Find the creators and videos most worth clipping right now' : 'Let the agent find, clip and post on a schedule'} wide>
+        <Segmented options={PANES} value={pane} onChange={setPane} />
+        {pane === 'scout' ? (
+          <ScoutPane
+            onAutopilot={(t) => {
+              setCampaignTopic(t);
+              setPane('autopilot');
+            }}
+          />
+        ) : (
+          <AutopilotPane topic={campaignTopic} />
+        )}
+      </Screen>
+    );
+  }
+
   return (
     <Screen
       title="Trending"
@@ -63,6 +93,7 @@ export default function Discover() {
       wide
       right={<Button label="Refresh" variant="secondary" icon="refresh" onPress={() => void load()} />}
     >
+      <Segmented options={PANES} value={pane} onChange={setPane} />
       <View style={styles.searchRow}>
         <View style={{ flex: 1 }}>
           <Input icon="search" value={q} onChangeText={setQ} placeholder="Search videos, creators, topics…" onSubmitEditing={() => setQuery(q.trim())} returnKeyType="search" />

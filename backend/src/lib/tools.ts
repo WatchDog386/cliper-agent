@@ -50,6 +50,8 @@ export interface RunOptions {
   signal?: AbortSignal;
   /** Keep stdout (default true; switch off for chatty commands). */
   collect?: boolean;
+  /** Folder to run in (so files can be named without their path). */
+  cwd?: string;
 }
 
 export class ToolError extends Error {
@@ -66,7 +68,7 @@ export class ToolError extends Error {
 export function run(cmd: string, args: string[], opts: RunOptions = {}): Promise<string> {
   return new Promise((resolve, reject) => {
     if (opts.signal?.aborted) return reject(new ToolError('Cancelled', null, ''));
-    const child = spawn(cmd, args, { windowsHide: true });
+    const child = spawn(cmd, args, { windowsHide: true, cwd: opts.cwd });
     let out = '';
     let errTail = '';
     const lines = (cb?: (l: string) => void) => {

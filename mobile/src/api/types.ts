@@ -28,6 +28,14 @@ export interface ClipOptions {
   fade: boolean;
   mute: boolean;
   speed: number;
+  captions: boolean;
+  captionStyle: 'bold' | 'karaoke' | 'minimal';
+  hook: 'none' | 'custom' | 'auto';
+  hookText?: string;
+  credit: boolean;
+  normalizeAudio: boolean;
+  aiPick: boolean;
+  topic?: string;
 }
 
 export type JobStatus = 'QUEUED' | 'FETCHING' | 'ANALYZING' | 'RENDERING' | 'DONE' | 'FAILED' | 'CANCELLED';
@@ -42,6 +50,10 @@ export interface Clip {
   height: number;
   sizeBytes: number;
   score: number | null;
+  /** Ready-to-post text written for this clip. */
+  title: string | null;
+  caption: string | null;
+  transcript: string | null;
   videoUrl: string;
   thumbUrl: string | null;
   downloadUrl: string;
@@ -103,6 +115,64 @@ export interface AppConfig {
   limits: { maxSourceMinutes: number; maxClipsPerJob: number; maxUploadMb: number };
   discover: 'youtube-trending' | 'search';
   social: Platform[];
+  features: { captions: boolean; ai: boolean; twitch: boolean; youtubeApi: boolean };
+}
+
+/* ── Scout and Autopilot ── */
+
+export interface ScoutVideo {
+  id: string;
+  platform: 'youtube' | 'twitch';
+  kind: 'video' | 'clip';
+  url: string;
+  title: string;
+  creator: string;
+  creatorUrl: string | null;
+  subscribers: number | null;
+  views: number;
+  publishedAt: string | null;
+  duration: number | null;
+  thumbnail: string | null;
+  score: number;
+}
+
+export interface ScoutCreator {
+  key: string;
+  platform: 'youtube' | 'twitch';
+  name: string;
+  url: string | null;
+  subscribers: number | null;
+  views: number;
+  videos: number;
+  score: number;
+}
+
+export interface ScoutResult {
+  topic: string;
+  videos: ScoutVideo[];
+  creators: ScoutCreator[];
+  notes: string[];
+}
+
+export interface Campaign {
+  id: string;
+  name: string;
+  topic: string;
+  sources: ('youtube' | 'twitch')[];
+  days: number;
+  minViews: number;
+  minSubscribers: number;
+  maxMinutes: number;
+  videosPerRun: number;
+  everyHours: number;
+  options: ClipOptions;
+  autoPublish: AutoPublish | null;
+  enabled: boolean;
+  lastRunAt: string | null;
+  nextRunAt: string;
+  lastNote: string | null;
+  videosTaken: number;
+  recent: { id: string; title: string; creator: string | null; platform: string; views: number | null; score: number | null; url: string; jobId: string | null; at: string }[];
 }
 
 /* ── Social accounts and posts ── */

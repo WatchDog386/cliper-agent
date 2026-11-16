@@ -13,9 +13,12 @@ export type Encoder = 'libx264' | 'h264_nvenc' | 'h264_qsv' | 'h264_vaapi';
 
 let active: Encoder = 'libx264';
 let note: string | null = null;
+/** Whether this ffmpeg can draw captions and titles (built with libass). Checked at start-up. */
+let drawsText = true;
+export const canDrawText = () => drawsText;
 
 export const currentEncoder = () => active;
-export const encoderInfo = () => ({ wanted: env.VIDEO_ENCODER, active, hardware: active !== 'libx264', note, parallel: renderParallel() });
+export const encoderInfo = () => ({ wanted: env.VIDEO_ENCODER, active, hardware: active !== 'libx264', note, parallel: renderParallel(), drawsText });
 
 /** Arguments that go before the inputs. */
 export function encoderInputArgs(e: Encoder = active): string[] {
@@ -46,6 +49,10 @@ export function encoderOutputArgs(e: Encoder = active): string[] {
 
 /** Try the configured encoder; fall back to libx264 when it does not work on this machine. */
 export async function detectEncoder(): Promise<ReturnType<typeof encoderInfo>> {
+  drawsText = await run(tools.ffmpeg, ['-hide_banner', '-filters']).then(
+    (out) => /^\s*\S+\s+ass\s/m.test(out),
+    () => true,
+  );
   const wanted = env.VIDEO_ENCODER;
   active = 'libx264';
   note = null;

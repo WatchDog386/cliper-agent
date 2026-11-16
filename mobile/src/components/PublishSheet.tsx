@@ -79,7 +79,10 @@ export function PublishSheet({ visible, clips, jobTitle, onClose, onDone }: { vi
   useEffect(() => {
     if (!visible) return;
     setError('');
-    setTitle(many ? `${jobTitle} ({n})` : jobTitle);
+    // One clip: its own ready-to-post text, to edit. Several: left empty, so each clip posts with its own.
+    const own = clips.some((c) => c.title || c.caption);
+    setTitle(many ? (own ? '' : `${jobTitle} ({n})`) : (clips[0]?.title ?? jobTitle));
+    setCaption(many ? '' : (clips[0]?.caption ?? ''));
     Promise.all([api<{ accounts: SocialAccount[] }>('/social/accounts'), api<{ providers: SocialProvider[] }>('/social/providers')]).then(
       ([a, p]) => {
         setAccounts(a.accounts);
@@ -89,6 +92,7 @@ export function PublishSheet({ visible, clips, jobTitle, onClose, onDone }: { vi
       },
       (e) => setError(e instanceof Error ? e.message : 'Could not load your accounts'),
     );
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [visible, many, jobTitle]);
 
   const chosen = useMemo(() => (accounts ?? []).filter((a) => picked.includes(a.id)), [accounts, picked]);
@@ -180,8 +184,8 @@ export function PublishSheet({ visible, clips, jobTitle, onClose, onDone }: { vi
                 </View>
                 <View style={{ gap: space.md }}>
                   <SectionTitle hint={many ? '{n} becomes each clip’s number, {title} the video’s title' : 'The title is used where a platform has one (YouTube, Facebook, LinkedIn)'}>Text</SectionTitle>
-                  <Input label="Title" value={title} onChangeText={setTitle} maxLength={200} placeholder="A title for the video" />
-                  <Input label="Caption" value={caption} onChangeText={setCaption} multiline maxLength={5000} placeholder="Say something about it. #hashtags work too" />
+                  <Input label="Title" value={title} onChangeText={setTitle} maxLength={200} placeholder={many ? "Empty: each clip's own title" : 'A title for the video'} />
+                  <Input label="Caption" value={caption} onChangeText={setCaption} multiline maxLength={5000} placeholder={many ? "Empty: each clip's own caption, with credit and hashtags" : 'Say something about it. #hashtags work too'} />
                 </View>
                 <View>
                   <SectionTitle>Who can see it</SectionTitle>
