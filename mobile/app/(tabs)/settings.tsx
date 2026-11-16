@@ -15,6 +15,8 @@ import { colors, fonts, setThemeMode, space, themeMode } from '../../src/theme';
 interface SystemInfo {
   tools: Record<string, { ok: boolean; version?: string }>;
   queue: { running: number; concurrency: number };
+  encoder?: { active: string; hardware: boolean; note: string | null; parallel: number };
+  publisher?: { running: number; concurrency: number };
 }
 
 export default function Settings() {
@@ -92,13 +94,13 @@ export default function Settings() {
             value={themeMode}
             onChange={(m) => m !== themeMode && setThemeMode(m)}
             options={[
-              { value: 'dark', label: 'Dark', icon: 'moon-outline' },
               { value: 'light', label: 'Light', icon: 'sunny-outline' },
+              { value: 'dark', label: 'Dark', icon: 'moon-outline' },
             ]}
           />
         ) : (
           <Text variant="bodySm" color={colors.textMuted}>
-            The app follows the dark theme on phones.
+            The phone app uses the light theme.
           </Text>
         )}
         <SectionTitle hint="The Create page starts from your last settings">Clip settings</SectionTitle>
@@ -134,7 +136,20 @@ export default function Settings() {
             ))}
             <Text variant="bodySm" color={colors.textMuted}>
               Rendering {system.queue.running} of {system.queue.concurrency} job slots
+              {system.encoder ? ` · ${system.encoder.parallel} clip${system.encoder.parallel === 1 ? '' : 's'} at a time` : ''}
             </Text>
+            {system.encoder ? (
+              <View style={styles.toolRow}>
+                <Ionicons name={system.encoder.hardware ? 'flash' : 'hardware-chip-outline'} size={18} color={system.encoder.hardware ? colors.success : colors.textMuted} />
+                <Text variant="bodySm" style={{ fontFamily: fonts.semibold, width: 70 }}>
+                  encoder
+                </Text>
+                <Text variant="bodySm" color={colors.textMuted} style={{ flex: 1 }}>
+                  {system.encoder.active} {system.encoder.hardware ? '(graphics card)' : '(CPU)'}
+                </Text>
+              </View>
+            ) : null}
+            {system.encoder?.note ? <Notice tone="warning">{system.encoder.note}</Notice> : null}
           </View>
         ) : null}
       </Card>

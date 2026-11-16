@@ -1,6 +1,6 @@
 # Cliper Agent
 
-**Paste a trending video link. Get ready-to-post clips, sized for phone or desktop.**
+**Paste a trending video link. Get ready-to-post clips, sized for phone or desktop, and post them to your social accounts.**
 
 Cliper Agent downloads a video from a link (YouTube, TikTok, X/Twitter, Instagram, Facebook, Reddit, Vimeo,
 direct `.mp4` links and [about 1,800 other sites](https://github.com/yt-dlp/yt-dlp/blob/master/supportedsites.md)),
@@ -29,6 +29,9 @@ they'll be watched:
 - **Live progress**: download, analyse, clip, with a percentage and a step indicator. Jobs can be cancelled or retried.
 - **Clip gallery**: each clip is shown at its true shape and plays inline. Download clips one at a time or **all as a .zip**. On phones, the share sheet saves to the gallery or posts directly.
 - **Re-clip in one tap**: "Make desktop version" / "Make phone version" of the same video.
+- **Post to your channels**: connect YouTube, TikTok, Instagram, Facebook Pages, X and LinkedIn once, then post a clip (or all of them) to several accounts in one go. Post now, schedule, or space clips out over hours or days. Setup: [docs/SOCIAL.md](docs/SOCIAL.md).
+- **Post automatically**: tick accounts when you start a job and every clip is posted as soon as it is ready.
+- **Fast**: clips of one video render side by side, and a graphics card (NVIDIA, Intel, AMD) is used when the server has one.
 - **Trending tab**: YouTube's real *most popular* chart by category when a YouTube API key is set, otherwise search-based discovery. **Clip this** sends a video straight to the clipper.
 - **Accounts**: email + password. The first account is the admin. Sign-up can be closed. Each person only sees their own jobs.
 - **Housekeeping**: finished jobs and their files are deleted after `KEEP_JOBS_DAYS` (default 7).
@@ -48,7 +51,7 @@ they'll be watched:
                                          └─ ffmpeg   → each clip: trim → reframe → speed/fade → H.264/AAC + thumbnail
 ```
 
-Details: [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) · API: [docs/API.md](docs/API.md)
+Details: [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) · API: [docs/API.md](docs/API.md) · Social accounts: [docs/SOCIAL.md](docs/SOCIAL.md) · Proxmox: [docs/PROXMOX.md](docs/PROXMOX.md)
 
 ## Repository layout
 
@@ -56,12 +59,13 @@ Details: [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) · API: [docs/API.md](docs
 backend/   Node.js + Express + TypeScript + Prisma (PostgreSQL) API and the clipping engine (src/clipper)
 mobile/    Expo Router app: web, Android and iOS from one codebase
 deploy/    Production stack: Docker Compose, Caddy (HTTPS), backups
-docs/      Architecture and API reference
+docs/      Architecture, API reference, social-account setup, Proxmox guide
 ```
 
 ## Deploy on your server
 
-You need a Linux server with Docker. Video rendering is CPU-heavy, so plan on 2+ cores and enough disk for the clips you keep.
+You need a Linux server with Docker. Video rendering is CPU-heavy, so plan on 4+ cores and enough disk for the clips you keep.
+**On Proxmox**, [docs/PROXMOX.md](docs/PROXMOX.md) covers creating the VM (one script), sizing, HTTPS or a Cloudflare Tunnel, and GPU passthrough.
 
 ```bash
 git clone https://github.com/WatchDog386/cliper-agent.git && cd cliper-agent
@@ -120,6 +124,11 @@ SKIP_DB=1 npx vitest run test/plan.test.ts   # planner / filter unit tests only
 | `CLIP_CONCURRENCY` | `1` | Jobs rendered at once (about 1 per 4 cores) |
 | `KEEP_JOBS_DAYS` | `7` | Delete finished jobs and their clips after this many days (`0` = keep forever) |
 | `X264_PRESET` / `X264_CRF` | `veryfast` / `22` | Encoding speed vs. quality |
+| `RENDER_PARALLEL` | `0` | Clips of one video rendered at once (`0` = from the CPU cores) |
+| `VIDEO_ENCODER` | `libx264` | `h264_nvenc`, `h264_qsv` or `h264_vaapi` with a graphics card (falls back to `libx264`) |
+| `PUBLIC_URL` | – | The site's public https address; needed to connect social accounts |
+| `YOUTUBE_CLIENT_ID` … `LINKEDIN_CLIENT_SECRET` | – | Developer-app keys per platform ([docs/SOCIAL.md](docs/SOCIAL.md)) |
+| `TOKEN_ENCRYPTION_KEY` | from `JWT_SECRET` | Encrypts stored social-account tokens |
 | `YOUTUBE_API_KEY` | – | Enables YouTube's real trending chart in the Trending tab |
 | `TRENDING_REGION` | `US` | Country for the trending chart |
 | `ALLOW_PRIVATE_URLS` | `false` | Development only: allow links to localhost / private networks |

@@ -38,6 +38,15 @@ const schema = z.object({
   /** x264 speed/quality trade-off: ultrafast … veryfast … medium. */
   X264_PRESET: z.string().default('veryfast'),
   X264_CRF: z.coerce.number().default(22),
+  /**
+   * Video encoder. libx264 runs on any CPU. With a graphics card passed through to the server (Proxmox):
+   * h264_nvenc (NVIDIA), h264_qsv (Intel Quick Sync) or h264_vaapi (Intel / AMD) render several times
+   * faster. If the chosen one does not work at start-up the server falls back to libx264.
+   */
+  VIDEO_ENCODER: z.enum(['libx264', 'h264_nvenc', 'h264_qsv', 'h264_vaapi']).default('libx264'),
+  VAAPI_DEVICE: z.string().default('/dev/dri/renderD128'),
+  /** Clips of one job rendered at the same time. 0 = decide from the number of CPU cores. */
+  RENDER_PARALLEL: z.coerce.number().int().min(0).max(16).default(0),
 
   /** Tool locations. Empty: bundled binaries (npm run tools / ffmpeg-static) or the ones on PATH. */
   FFMPEG_PATH: z.string().default(''),
@@ -50,6 +59,31 @@ const schema = z.object({
   YOUTUBE_API_KEY: z.string().default(''),
   TRENDING_REGION: z.string().length(2).default('US'),
   APP_NAME: z.string().default('Cliper Agent'),
+
+  /**
+   * The address people open the app at, e.g. https://clips.example.com (no trailing slash). The social
+   * platforms send people back to <PUBLIC_URL>/api/v1/social/callback/<platform> after they approve.
+   * Empty: worked out from each request (fine for local development).
+   */
+  PUBLIC_URL: z.string().default('').transform((v) => v.replace(/\/+$/, '')),
+  /** Key that encrypts the social-account tokens in the database. Empty: derived from JWT_SECRET. */
+  TOKEN_ENCRYPTION_KEY: z.string().default(''),
+  /** Posts uploaded to the platforms at the same time. */
+  PUBLISH_CONCURRENCY: z.coerce.number().int().min(1).max(8).default(2),
+
+  /* Developer-app credentials for each platform (docs/SOCIAL.md). A platform with none is shown as "not set up". */
+  YOUTUBE_CLIENT_ID: z.string().default(''),
+  YOUTUBE_CLIENT_SECRET: z.string().default(''),
+  TIKTOK_CLIENT_KEY: z.string().default(''),
+  TIKTOK_CLIENT_SECRET: z.string().default(''),
+  INSTAGRAM_APP_ID: z.string().default(''),
+  INSTAGRAM_APP_SECRET: z.string().default(''),
+  FACEBOOK_APP_ID: z.string().default(''),
+  FACEBOOK_APP_SECRET: z.string().default(''),
+  X_CLIENT_ID: z.string().default(''),
+  X_CLIENT_SECRET: z.string().default(''),
+  LINKEDIN_CLIENT_ID: z.string().default(''),
+  LINKEDIN_CLIENT_SECRET: z.string().default(''),
 });
 
 const parsed = schema.safeParse(process.env);

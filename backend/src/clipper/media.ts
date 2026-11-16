@@ -1,6 +1,6 @@
 import fs from 'node:fs';
-import { env } from '../config/env';
 import { run, tools } from '../lib/tools';
+import { encoderFilterTail, encoderInputArgs, encoderOutputArgs } from './encoder';
 import { buildFilterGraph, type SourceInfo } from './filters';
 import type { ClipOptions } from './options';
 import type { Segment } from './plan';
@@ -74,11 +74,12 @@ export async function renderClip(
   signal?: AbortSignal,
 ) {
   const length = seg.end - seg.start;
-  const g = buildFilterGraph(src, o, length);
+  const g = buildFilterGraph(src, o, length, encoderFilterTail());
   const args = [
     '-hide_banner',
     '-nostdin',
     '-y',
+    ...encoderInputArgs(),
     '-ss',
     seg.start.toFixed(3),
     '-t',
@@ -90,14 +91,7 @@ export async function renderClip(
     '-map',
     '[v]',
     ...(g.withAudio ? ['-map', '[a]', '-c:a', 'aac', '-b:a', '128k', '-ac', '2', '-ar', '44100'] : ['-an']),
-    '-c:v',
-    'libx264',
-    '-preset',
-    env.X264_PRESET,
-    '-crf',
-    String(env.X264_CRF),
-    '-profile:v',
-    'high',
+    ...encoderOutputArgs(),
     '-movflags',
     '+faststart',
     '-progress',

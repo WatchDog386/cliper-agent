@@ -5,6 +5,8 @@ import { env } from '../config/env';
 import { prisma } from '../lib/prisma';
 import { jobDir, toStored } from '../lib/storage';
 import { ToolError } from '../lib/tools';
+import { queueAutoPublish } from '../social/autopublish';
+import { renderParallel } from './encoder';
 import { loudnessPerSecond, probe, renderClip, thumbnail } from './media';
 import { optionsSchema } from './options';
 import { planSegments } from './plan';
@@ -51,7 +53,8 @@ export const abortJob = (id: string) => running.get(id)?.abort();
 export const queueStats = () => ({ running: running.size, concurrency: env.CLIP_CONCURRENCY });
 
 async function tick() {
-  if (ticking || stopping) return;
+  // Tests drive jobs by hand (processJob), so the queue never picks them up behind their back
+  if (ticking || stopping || env.NODE_ENV === 'test') return;
   ticking = true;
   try {
     while (running.size < env.CLIP_CONCURRENCY && !stopping) {
@@ -148,16 +151,31 @@ export async function processJob(id: string, signal: AbortSignal) {
     const segments = planSegments(info.duration, o, loudness).slice(0, env.MAX_CLIPS_PER_JOB);
     if (!segments.length) throw new Error('Nothing to clip: check the start / end times and ranges against the video length');
 
-    // ── 4. Render ──
+    // ── 4. Render ── several clips at once on bigger machines (see encoder.ts)
     const base = fetchShare + analyseShare;
-    const each = (99 - base) / segments.length;
-    for (let i = 0; i < segments.length; i++) {
+    const total = segments.length;
+    const fractions = new Array<number>(total).fill(0);
+    let finished = 0;
+    const overall = () => base + (fractions.reduce((a, b) => a + b, 0) / total) * (99 - base);
+    const label = () => (finished >= total ? 'Finishing' : `Rendering clip ${Math.min(total, finished + 1)} of ${total}`);
+    await report(JobStatus.RENDERING, base, label(), true);
+
+    const renderOne = async (i: number) => {
       const seg = segments[i]!;
       const n = String(i + 1).padStart(2, '0');
-      const label = `Rendering clip ${i + 1} of ${segments.length}`;
-      await report(JobStatus.RENDERING, base + i * each, label, true);
       const out = path.join(dir, `clip-${n}.mp4`);
-      const r = await renderClip(sourceFile, info, seg, o, out, (f) => soft(JobStatus.RENDERING, base + (i + f) * each, `${label} · ${Math.round(f * 100)}%`), signal);
+      const r = await renderClip(
+        sourceFile!,
+        info,
+        seg,
+        o,
+        out,
+        (f) => {
+          fractions[i] = f;
+          soft(JobStatus.RENDERING, overall(), `${label()} · ${Math.round(((overall() - base) / (99 - base)) * 100)}%`);
+        },
+        signal,
+      );
       const thumb = path.join(dir, `clip-${n}.jpg`);
       const hasThumb = await thumbnail(out, r.duration, thumb, signal).then(
         () => true,
@@ -178,7 +196,27 @@ export async function processJob(id: string, signal: AbortSignal) {
           thumb: hasThumb ? toStored(thumb) : null,
         },
       });
-    }
+      fractions[i] = 1;
+      finished += 1;
+      // Each finished clip shows up in the app straight away
+      await report(JobStatus.RENDERING, overall(), label(), true);
+    };
+
+    // A small pool: each worker takes the next clip until none are left; the first failure stops them all
+    let nextIndex = 0;
+    let failure: unknown = null;
+    const worker = async () => {
+      while (failure === null && nextIndex < total) {
+        const i = nextIndex++;
+        try {
+          await renderOne(i);
+        } catch (e) {
+          failure ??= e;
+        }
+      }
+    };
+    await Promise.all(Array.from({ length: Math.min(renderParallel(), total) }, worker));
+    if (failure !== null) throw failure;
 
     await prisma.clipJob.update({
       where: { id },
@@ -186,6 +224,8 @@ export async function processJob(id: string, signal: AbortSignal) {
     });
     // A link can be fetched again; an upload cannot, so its source is kept (until the job is deleted)
     if (job.sourceKind === 'URL' && !env.KEEP_SOURCE && sourceFile) await fs.promises.rm(sourceFile, { force: true });
+    // "Post automatically": queue every clip for the chosen accounts
+    if (job.autoPublish) await queueAutoPublish(id).catch((e) => console.error(`[queue] could not queue the posts of job ${id}`, e));
   } catch (err) {
     if (err instanceof Cancelled || signal.aborted) return; // cancelled, deleted, or the server is stopping
     if (err instanceof Prisma.PrismaClientKnownRequestError && err.code === 'P2025') return; // deleted

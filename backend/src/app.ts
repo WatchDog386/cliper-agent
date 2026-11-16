@@ -16,6 +16,11 @@ import { mediaRouter } from './modules/media/media.routes';
 import { sourceRouter } from './modules/source/source.routes';
 import { discoverRouter } from './modules/discover/discover.routes';
 import { queueStats } from './clipper/queue';
+import { encoderInfo } from './clipper/encoder';
+import { socialRouter } from './modules/social/social.routes';
+import { publicationsRouter } from './modules/social/publications.routes';
+import { publisherStats } from './social/publisher';
+import { PLATFORMS, providers } from './social/providers';
 
 export function createApp() {
   const app = express();
@@ -80,6 +85,8 @@ export function createApp() {
       allowSignup: env.ALLOW_SIGNUP,
       limits: { maxSourceMinutes: env.MAX_SOURCE_MINUTES, maxClipsPerJob: env.MAX_CLIPS_PER_JOB, maxUploadMb: env.MAX_UPLOAD_MB },
       discover: env.YOUTUBE_API_KEY ? 'youtube-trending' : 'search',
+      /** Platforms clips can be posted to from this server. */
+      social: PLATFORMS.filter((p) => providers[p].configured()),
     });
   });
   /** Tool versions and queue load (Settings → Server). */
@@ -87,7 +94,7 @@ export function createApp() {
     '/system',
     requireAuth,
     ah(async (_req, res) => {
-      res.json({ tools: await checkTools(), queue: queueStats() });
+      res.json({ tools: await checkTools(), queue: queueStats(), encoder: encoderInfo(), publisher: publisherStats() });
     }),
   );
 
@@ -95,6 +102,9 @@ export function createApp() {
   api.use('/jobs', requireAuth, jobsRouter);
   api.use('/source', requireAuth, sourceRouter);
   api.use('/discover', requireAuth, discoverRouter);
+  // Sign-in is checked per route: the platforms' callback arrives without a session
+  api.use('/social', socialRouter);
+  api.use('/publications', requireAuth, publicationsRouter);
   app.use('/api/v1', api);
 
   app.use(notFoundHandler);

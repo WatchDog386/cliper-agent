@@ -1,16 +1,17 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Image, Platform, Pressable, StyleSheet, TextInput, View } from 'react-native';
-import { router } from 'expo-router';
+import { router, useFocusEffect } from 'expo-router';
 import * as Clipboard from 'expo-clipboard';
 import * as DocumentPicker from 'expo-document-picker';
 import Ionicons from '@expo/vector-icons/Ionicons';
+import { AccountPicker } from '../../src/components/AccountPicker';
 import { Button } from '../../src/components/Button';
 import { Input } from '../../src/components/Input';
 import { Segmented } from '../../src/components/Segmented';
 import { Text } from '../../src/components/Text';
 import { AspectPicker, Card, Chips, Notice, OptionCards, ProgressBar, Screen, SectionTitle, ToggleRow } from '../../src/components/ui';
 import { api, uploadVideo } from '../../src/api/client';
-import type { AppConfig, ClipOptions, Job, SourceMeta } from '../../src/api/types';
+import type { AppConfig, AutoPublish, ClipOptions, Job, SocialAccount, SourceMeta } from '../../src/api/types';
 import { useDraft } from '../../src/store/draft';
 import { colors, fonts, radius, space } from '../../src/theme';
 import { clock, compact, estimateClips, parseClock } from '../../src/utils/format';
@@ -45,6 +46,24 @@ export default function Create() {
   const [trimEnd, setTrimEnd] = useState('');
   const [ranges, setRanges] = useState<{ start: string; end: string }[]>([{ start: '', end: '' }]);
   const [config, setConfig] = useState<AppConfig | null>(null);
+  // "Post automatically": the accounts every finished clip goes to
+  const [accounts, setAccounts] = useState<SocialAccount[]>([]);
+  const [autoTo, setAutoTo] = useState<string[]>([]);
+  const [autoCaption, setAutoCaption] = useState('');
+  const [autoEvery, setAutoEvery] = useState(60);
+
+  // Accounts may have been connected on the Channels tab since this page was last open
+  useFocusEffect(
+    useCallback(() => {
+      api<{ accounts: SocialAccount[] }>('/social/accounts').then(
+        (r) => {
+          setAccounts(r.accounts);
+          setAutoTo((cur) => cur.filter((id) => r.accounts.some((a) => a.id === id && !a.needsReconnect)));
+        },
+        () => undefined,
+      );
+    }, []),
+  );
 
   useEffect(() => {
     api<AppConfig>('/config').then(setConfig, () => undefined);
@@ -121,13 +140,15 @@ export default function Create() {
     setBusy(true);
     try {
       let job: Job;
+      const autoPublish: AutoPublish | undefined = autoTo.length ? { accountIds: autoTo, caption: autoCaption.trim(), privacy: 'public', everyMinutes: autoEvery } : undefined;
       if (source === 'link') {
-        job = (await api<{ job: Job }>('/jobs', { body: { url: url.trim(), title: meta?.title ?? draft.title, thumbnailUrl: meta?.thumbnail ?? draft.thumbnail, options } })).job;
+        job = (await api<{ job: Job }>('/jobs', { body: { url: url.trim(), title: meta?.title ?? draft.title, thumbnailUrl: meta?.thumbnail ?? draft.thumbnail, options, autoPublish } })).job;
       } else {
         const form = new FormData();
         if (Platform.OS === 'web' && file!.file) form.append('file', file!.file, file!.name);
         else form.append('file', { uri: file!.uri, name: file!.name, type: file!.mimeType ?? 'video/mp4' } as unknown as Blob);
         form.append('options', JSON.stringify(options));
+        if (autoPublish) form.append('autoPublish', JSON.stringify(autoPublish));
         setUploadPct(0);
         job = (await uploadVideo<{ job: Job }>('/jobs/upload', form, setUploadPct)).job;
       }
@@ -355,8 +376,37 @@ export default function Create() {
         />
       </Card>
 
+      {/* ── Post automatically ── */}
+      <Card>
+        <SectionTitle hint={accounts.length ? 'Tick accounts to post every clip as soon as it is ready. Leave empty to post by hand later.' : 'Connect your social accounts to post clips straight from here.'}>Post automatically</SectionTitle>
+        {accounts.length ? (
+          <>
+            <AccountPicker accounts={accounts} value={autoTo} onChange={setAutoTo} />
+            {autoTo.length ? (
+              <>
+                <Input label="Caption for every post ({n} = clip number, {title} = video title)" value={autoCaption} onChangeText={setAutoCaption} multiline maxLength={5000} placeholder="{title} · part {n} #shorts" />
+                <SectionTitle hint="So a long video feeds your channels for hours instead of flooding them">Time between clips</SectionTitle>
+                <Chips
+                  value={autoEvery}
+                  onChange={setAutoEvery}
+                  options={[
+                    { value: 0, label: 'All at once' },
+                    { value: 30, label: '30 min' },
+                    { value: 60, label: '1 hour' },
+                    { value: 180, label: '3 hours' },
+                    { value: 1440, label: '1 day' },
+                  ]}
+                />
+              </>
+            ) : null}
+          </>
+        ) : (
+          <Button label="Connect accounts" variant="secondary" icon="share-social-outline" style={{ alignSelf: 'flex-start' }} onPress={() => router.navigate('/channels')} />
+        )}
+      </Card>
+
       {/* ── Go ── */}
-      <Card style={{ backgroundColor: colors.hero }}>
+      <Card style={{ backgroundColor: colors.hero, borderColor: colors.heroBorder }}>
         <Text variant="h2" color={colors.onHero} fixedColor style={{ fontFamily: fonts.bold }}>
           {estimate !== null ? `${estimate} clip${estimate === 1 ? '' : 's'}` : o.mode === 'custom' ? `${parsedRanges.length} clips` : 'Up to ' + o.maxClips + ' clips'}
           {o.mode !== 'custom' ? ` of ${o.segmentSeconds < 60 ? `${o.segmentSeconds}s` : clock(o.segmentSeconds)}` : ''}
@@ -367,6 +417,7 @@ export default function Create() {
           {o.mode === 'highlights' ? ' · best moments' : ''}
           {o.speed !== 1 ? ` · ${o.speed}×` : ''}
           {o.mute ? ' · no sound' : ''}
+          {autoTo.length ? ` · posted to ${autoTo.length} account${autoTo.length === 1 ? '' : 's'}` : ''}
         </Text>
         {error ? <Notice tone="danger">{error}</Notice> : null}
         {uploadPct !== null ? (
@@ -377,7 +428,7 @@ export default function Create() {
             </Text>
           </View>
         ) : null}
-        <Button label="Clip it" icon="cut" size="lg" loading={busy} onPress={() => void submit()} />
+        <Button label={autoTo.length ? 'Clip it and post' : 'Clip it'} icon="cut" size="lg" loading={busy} onPress={() => void submit()} />
       </Card>
     </Screen>
   );

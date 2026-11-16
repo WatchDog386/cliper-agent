@@ -37,4 +37,7 @@ echo "▶ Automatic security updates + SSH brute-force protection…"
 dpkg-reconfigure -f noninteractive unattended-upgrades
 systemctl enable --now fail2ban
 
-echo "✅ VM ready. Next: cp deploy/.env.example deploy/.env, edit it, then run: bash deploy/deploy.sh"
+echo "▶ Letting your user run Docker without sudo (takes effect at next login)…"
+if [ -n "${SUDO_USER:-}" ] && [ "$SUDO_USER" != root ]; then usermod -aG docker "$SUDO_USER"; fi
+
+echo "✅ VM ready. Log out and back in, then: cp deploy/.env.example deploy/.env, edit it, and run: bash deploy/deploy.sh"

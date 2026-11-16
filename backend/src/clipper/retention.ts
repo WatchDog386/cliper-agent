@@ -13,7 +13,12 @@ export async function sweep() {
   if (env.KEEP_JOBS_DAYS > 0) {
     const before = new Date(Date.now() - env.KEEP_JOBS_DAYS * 86_400_000);
     const old = await prisma.clipJob.findMany({
-      where: { status: { in: [JobStatus.DONE, JobStatus.FAILED, JobStatus.CANCELLED] }, updatedAt: { lt: before } },
+      // A job whose clips still wait to be posted (scheduled posts) is kept until they have gone out
+      where: {
+        status: { in: [JobStatus.DONE, JobStatus.FAILED, JobStatus.CANCELLED] },
+        updatedAt: { lt: before },
+        clips: { none: { publications: { some: { status: { in: ['QUEUED', 'PUBLISHING'] } } } } },
+      },
       select: { id: true },
       take: 500,
     });

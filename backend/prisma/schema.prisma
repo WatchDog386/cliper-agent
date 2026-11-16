@@ -32,17 +32,19 @@ enum SourceKind {
 }
 
 model User {
-  id             String    @id @default(cuid())
-  email          String    @unique
+  id             String          @id @default(cuid())
+  email          String          @unique
   name           String
   passwordHash   String
-  role           Role      @default(USER)
-  active         Boolean   @default(true)
+  role           Role            @default(USER)
+  active         Boolean         @default(true)
   /// Raised to sign a person out of every device.
-  sessionVersion Int       @default(0)
-  createdAt      DateTime  @default(now())
-  updatedAt      DateTime  @updatedAt
+  sessionVersion Int             @default(0)
+  createdAt      DateTime        @default(now())
+  updatedAt      DateTime        @updatedAt
   jobs           ClipJob[]
+  socialAccounts SocialAccount[]
+  publications   Publication[]
 }
 
 /// One request to cut a source video into clips.
@@ -63,6 +65,8 @@ model ClipJob {
   sourceHeight   Int?
   /// The clipping options (see src/clipper/options.ts).
   options        Json
+  /// Post every clip automatically when the job finishes (see src/social/autopublish.ts).
+  autoPublish    Json?
   status         JobStatus  @default(QUEUED)
   /// 0–100 for the whole job.
   progress       Int        @default(0)
@@ -81,23 +85,111 @@ model ClipJob {
 
 /// One rendered segment.
 model Clip {
-  id        String   @id @default(cuid())
-  jobId     String
-  job       ClipJob  @relation(fields: [jobId], references: [id], onDelete: Cascade)
+  id           String        @id @default(cuid())
+  jobId        String
+  job          ClipJob       @relation(fields: [jobId], references: [id], onDelete: Cascade)
   /// 1-based position in the job.
-  index     Int
-  startSec  Float
-  endSec    Float
-  duration  Float
-  width     Int
-  height    Int
-  sizeBytes Int
+  index        Int
+  startSec     Float
+  endSec       Float
+  duration     Float
+  width        Int
+  height       Int
+  sizeBytes    Int
   /// Highlight score 0–100 (highlights mode only).
-  score     Float?
+  score        Float?
   /// Paths relative to STORAGE_DIR.
-  file      String
-  thumb     String?
-  createdAt DateTime @default(now())
+  file         String
+  thumb        String?
+  createdAt    DateTime      @default(now())
+  publications Publication[]
 
   @@unique([jobId, index])
+}
+
+enum Platform {
+  YOUTUBE
+  TIKTOK
+  INSTAGRAM
+  FACEBOOK
+  X
+  LINKEDIN
+}
+
+/// A channel / page / profile a person connected so clips can be posted to it.
+model SocialAccount {
+  id             String        @id @default(cuid())
+  userId         String
+  user           User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  platform       Platform
+  /// The platform's own id for the channel / page / profile.
+  externalId     String
+  name           String
+  handle         String?
+  avatarUrl      String?
+  /// Tokens are encrypted at rest (src/lib/secret-box.ts).
+  accessToken    String
+  refreshToken   String?
+  expiresAt      DateTime?
+  scopes         String?
+  /// The platform refused the tokens: the person has to connect again.
+  needsReconnect Boolean       @default(false)
+  createdAt      DateTime      @default(now())
+  updatedAt      DateTime      @updatedAt
+  publications   Publication[]
+
+  @@unique([userId, platform, externalId])
+  @@index([userId])
+}
+
+/// A sign-in with a platform that is under way (the `state` of the OAuth round trip).
+model OAuthState {
+  id        String   @id
+  userId    String
+  platform  Platform
+  /// PKCE code verifier (encrypted).
+  verifier  String?
+  returnTo  String
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+}
+
+enum PublicationStatus {
+  /// Waiting for `runAt` (now, or a scheduled time).
+  QUEUED
+  PUBLISHING
+  PUBLISHED
+  FAILED
+  CANCELLED
+}
+
+/// One clip posted (or to be posted) to one connected account.
+model Publication {
+  id          String            @id @default(cuid())
+  userId      String
+  user        User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+  /// Null once the clip has been deleted (the record of the post stays).
+  clipId      String?
+  clip        Clip?             @relation(fields: [clipId], references: [id], onDelete: SetNull)
+  accountId   String
+  account     SocialAccount     @relation(fields: [accountId], references: [id], onDelete: Cascade)
+  title       String
+  caption     String            @default("")
+  /// public · unlisted · private (where the platform has the notion).
+  privacy     String            @default("public")
+  status      PublicationStatus @default(QUEUED)
+  runAt       DateTime          @default(now())
+  attempts    Int               @default(0)
+  /// 0–100 while uploading.
+  progress    Int               @default(0)
+  error       String?
+  externalId  String?
+  externalUrl String?
+  createdAt   DateTime          @default(now())
+  updatedAt   DateTime          @updatedAt
+  publishedAt DateTime?
+
+  @@index([userId, createdAt])
+  @@index([status, runAt])
+  @@index([clipId])
 }

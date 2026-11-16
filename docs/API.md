@@ -100,4 +100,54 @@ Prefix every path with `/api/v1`. Tokens last 12 hours. Fetch the job again for 
 
 | Method | Path | |
 |---|---|---|
-| GET | `/system` | `{ tools: { "yt-dlp", ffmpeg, ffprobe: { ok, version, path } }, queue: { running, concurrency } }` |
+| GET | `/system` | `{ tools: { "yt-dlp", ffmpeg, ffprobe: { ok, version, path } }, queue: { running, concurrency }, encoder: { wanted, active, hardware, note, parallel }, publisher: { running, concurrency } }` |
+
+## Social accounts
+
+Setup per platform: [SOCIAL.md](SOCIAL.md). `:platform` is `youtube`, `tiktok`, `instagram`, `facebook`, `x` or `linkedin`.
+
+| Method | Path | |
+|---|---|---|
+| GET | `/social/providers` | `{ providers: [{ platform, label, noun, configured, envNames, privacy, limits: { title?, caption, maxSeconds }, redirectUri }] }` |
+| GET | `/social/accounts` | `{ accounts: [{ id, platform, name, handle, avatarUrl, needsReconnect, connectedAt }] }` (never tokens) |
+| POST | `/social/connect/:platform` | `{ returnTo? }` → `{ url }`: open it; the person approves on the platform. `400 NOT_CONFIGURED` without the server's keys |
+| GET | `/social/callback/:platform` | Where the platform sends the person back (no sign-in header; the single-use `state` identifies them). Redirects to `returnTo#connected=<PLATFORM>&name=…` or `returnTo#error=…` |
+| DELETE | `/social/accounts/:id` | `204`. Forgets the tokens and cancels that account's waiting posts |
+
+`returnTo` must be this site, a `CORS_ORIGIN`, or the phone app (`cliperagent://…`); anything else is replaced by `<site>/channels`.
+
+## Posts
+
+One post = one clip sent to one account.
+
+| Method | Path | |
+|---|---|---|
+| GET | `/publications?status=all\|waiting\|published\|failed&jobId=` | `{ publications, stats: { waiting, published, failed } }` |
+| POST | `/publications` | `{ clipIds, accountIds, title?, caption?, privacy?, scheduledAt?, everyMinutes? }` → `201 { publications }` (one per clip and account) |
+| POST | `/publications/:id/retry` | Send a failed or cancelled post again → `{ publication }` |
+| POST | `/publications/:id/cancel` | Stop a waiting, scheduled or uploading post → `{ publication }` |
+| DELETE | `/publications/:id` | `204`. Removes the record (a published post stays on the platform) |
+
+- `title` / `caption`: `{n}` becomes the clip's number, `{title}` the video's title.
+- `privacy`: `public` (default), `unlisted`, `private`. Platforms without the notion post publicly.
+- `scheduledAt`: ISO time for the first clip; `everyMinutes` spaces the following clips.
+- Errors: `404` for clips or accounts that are not yours, `409 NEEDS_RECONNECT`, `400 TOO_LONG` (clip longer than the platform allows), `400 PAST`.
+
+A publication:
+
+```jsonc
+{
+  "id": "…", "status": "PUBLISHED", "scheduled": false, "runAt": "…", "title": "…", "caption": "…", "privacy": "public",
+  "progress": 100, "attempts": 1, "error": null, "externalUrl": "https://www.youtube.com/shorts/…", "publishedAt": "…",
+  "account": { "id": "…", "platform": "YOUTUBE", "name": "…", "handle": "@…", "avatarUrl": "…", "needsReconnect": false },
+  "clip": { "id": "…", "index": 1, "jobId": "…", "jobTitle": "…", "duration": 30, "thumbUrl": "/media/clips/<id>/thumb?t=…" }
+}
+```
+
+Statuses: `QUEUED` (waiting for `runAt`) `→ PUBLISHING → PUBLISHED`, or `FAILED` / `CANCELLED`.
+
+### Posting automatically
+
+`POST /jobs` and `POST /jobs/upload` (as a JSON form field) accept
+`autoPublish: { accountIds, caption?, title?, privacy?, everyMinutes? }`. When the job finishes, every clip is
+queued for every account, `everyMinutes` apart.

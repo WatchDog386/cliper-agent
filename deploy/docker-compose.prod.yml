@@ -34,7 +34,8 @@ services:
       JWT_SECRET: ${JWT_SECRET:?set JWT_SECRET in deploy/.env}
       JWT_EXPIRES_IN: ${JWT_EXPIRES_IN:-7d}
       CORS_ORIGIN: ${CORS_ORIGIN:-*}
-      TRUST_PROXY: 1
+      # 1 behind Caddy; 2 when a Cloudflare Tunnel sits in front of Caddy
+      TRUST_PROXY: ${TRUST_PROXY:-1}
       ALLOW_SIGNUP: ${ALLOW_SIGNUP:-true}
       STORAGE_DIR: /app/storage
       MAX_UPLOAD_MB: ${MAX_UPLOAD_MB:-2048}
@@ -44,6 +45,23 @@ services:
       KEEP_JOBS_DAYS: ${KEEP_JOBS_DAYS:-7}
       X264_PRESET: ${X264_PRESET:-veryfast}
       X264_CRF: ${X264_CRF:-22}
+      VIDEO_ENCODER: ${VIDEO_ENCODER:-libx264}
+      RENDER_PARALLEL: ${RENDER_PARALLEL:-0}
+      PUBLIC_URL: ${PUBLIC_URL:-}
+      TOKEN_ENCRYPTION_KEY: ${TOKEN_ENCRYPTION_KEY:-}
+      PUBLISH_CONCURRENCY: ${PUBLISH_CONCURRENCY:-2}
+      YOUTUBE_CLIENT_ID: ${YOUTUBE_CLIENT_ID:-}
+      YOUTUBE_CLIENT_SECRET: ${YOUTUBE_CLIENT_SECRET:-}
+      TIKTOK_CLIENT_KEY: ${TIKTOK_CLIENT_KEY:-}
+      TIKTOK_CLIENT_SECRET: ${TIKTOK_CLIENT_SECRET:-}
+      INSTAGRAM_APP_ID: ${INSTAGRAM_APP_ID:-}
+      INSTAGRAM_APP_SECRET: ${INSTAGRAM_APP_SECRET:-}
+      FACEBOOK_APP_ID: ${FACEBOOK_APP_ID:-}
+      FACEBOOK_APP_SECRET: ${FACEBOOK_APP_SECRET:-}
+      X_CLIENT_ID: ${X_CLIENT_ID:-}
+      X_CLIENT_SECRET: ${X_CLIENT_SECRET:-}
+      LINKEDIN_CLIENT_ID: ${LINKEDIN_CLIENT_ID:-}
+      LINKEDIN_CLIENT_SECRET: ${LINKEDIN_CLIENT_SECRET:-}
       YOUTUBE_API_KEY: ${YOUTUBE_API_KEY:-}
       TRENDING_REGION: ${TRENDING_REGION:-US}
       API_RATE_LIMIT: ${API_RATE_LIMIT:-600}
@@ -91,6 +109,18 @@ services:
       - ./backup.sh:/backup.sh:ro
       - ${BACKUP_DIR:-./backups}:/backups
     entrypoint: ["sh", "/backup.sh", "loop"]
+    networks: [internal]
+
+  # Optional: reach the server from the internet without opening ports (set TUNNEL_TOKEN in deploy/.env;
+  # deploy.sh then starts this). The tunnel's public hostname must point at http://web:80.
+  tunnel:
+    image: cloudflare/cloudflared:latest
+    profiles: [tunnel]
+    restart: unless-stopped
+    depends_on: [web]
+    command: tunnel --no-autoupdate run
+    environment:
+      TUNNEL_TOKEN: ${TUNNEL_TOKEN:-}
     networks: [internal]
 
 volumes:

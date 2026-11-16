@@ -5,9 +5,11 @@ import Ionicons from '@expo/vector-icons/Ionicons';
 import { Button } from '../../src/components/Button';
 import { Text } from '../../src/components/Text';
 import { ClipCard } from '../../src/components/ClipCard';
-import { Card, Empty, Notice, ProgressBar, Screen, Spinner, StatusPill } from '../../src/components/ui';
+import { PostRow } from '../../src/components/PostRow';
+import { PublishSheet } from '../../src/components/PublishSheet';
+import { Card, Empty, Notice, ProgressBar, Screen, SectionTitle, Spinner, StatusPill } from '../../src/components/ui';
 import { api } from '../../src/api/client';
-import { ACTIVE, type Aspect, type Job } from '../../src/api/types';
+import { ACTIVE, type Aspect, type Clip, type Job, type Publication } from '../../src/api/types';
 import { colors, fonts, space } from '../../src/theme';
 import { useDesktop } from '../../src/theme/desktop';
 import { bytes, clock } from '../../src/utils/format';
@@ -38,6 +40,9 @@ export default function JobPage() {
   const [error, setError] = useState('');
   const [busy, setBusy] = useState('');
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const [posts, setPosts] = useState<Publication[]>([]);
+  const [posting, setPosting] = useState<Clip[] | null>(null);
+  const [posted, setPosted] = useState('');
   const { width } = useWindowDimensions();
   const desktop = useDesktop();
 
@@ -65,6 +70,31 @@ export default function JobPage() {
       if (timer.current) clearTimeout(timer.current);
     };
   }, [load]);
+
+  // Posts of this video's clips, refreshed faster while one is uploading
+  const loadPosts = useCallback(async () => {
+    try {
+      const r = await api<{ publications: Publication[] }>(`/publications?jobId=${id}`);
+      setPosts(r.publications);
+      return r.publications.some((p) => p.status === 'PUBLISHING' || (p.status === 'QUEUED' && !p.scheduled));
+    } catch {
+      return false;
+    }
+  }, [id]);
+
+  useEffect(() => {
+    let alive = true;
+    let t: ReturnType<typeof setTimeout> | null = null;
+    const tick = async () => {
+      const active = await loadPosts();
+      if (alive) t = setTimeout(tick, active ? 3000 : 20000);
+    };
+    void tick();
+    return () => {
+      alive = false;
+      if (t) clearTimeout(t);
+    };
+  }, [loadPosts]);
 
   const act = async (name: string, fn: () => Promise<void>) => {
     setBusy(name);
@@ -143,11 +173,16 @@ export default function JobPage() {
           </>
         ) : null}
         {job.status === 'FAILED' && job.error ? <Notice tone="danger">{job.error}</Notice> : null}
+        {job.autoPublish && running ? <Notice>Every clip will be posted automatically when this is done{job.autoPublish.everyMinutes ? `, ${job.autoPublish.everyMinutes} min apart` : ''}.</Notice> : null}
+        {posted ? <Notice>{posted}</Notice> : null}
         {error ? <Notice tone="danger">{error}</Notice> : null}
 
         <View style={styles.actions}>
+          {job.status === 'DONE' && job.clips.length ? (
+            <Button label={job.clips.length > 1 ? `Post all ${job.clips.length} clips` : 'Post this clip'} icon="paper-plane-outline" onPress={() => setPosting(job.clips)} />
+          ) : null}
           {job.status === 'DONE' && job.clips.length > 1 ? (
-            <Button label="Download all (.zip)" icon="archive-outline" loading={busy === 'zip'} onPress={() => void act('zip', () => saveFile(job.zipUrl, `${slug}-clips.zip`))} />
+            <Button label="Download all (.zip)" variant="secondary" icon="archive-outline" loading={busy === 'zip'} onPress={() => void act('zip', () => saveFile(job.zipUrl, `${slug}-clips.zip`))} />
           ) : null}
           {running ? (
             <Button
@@ -196,6 +231,8 @@ export default function JobPage() {
               key={c.id}
               clip={c}
               width={cardW}
+              posted={new Set(posts.filter((p) => p.clip?.id === c.id && p.status === 'PUBLISHED').map((p) => p.account.id)).size}
+              onPublish={() => setPosting([c])}
               onDownload={() => void act(`dl${c.id}`, () => saveFile(c.downloadUrl, `${slug}-clip-${String(c.index).padStart(2, '0')}-${TAG[aspect]}.mp4`))}
               onDelete={() =>
                 void act(`del${c.id}`, async () => {
@@ -209,6 +246,36 @@ export default function JobPage() {
       ) : !running && job.status === 'DONE' ? (
         <Empty icon="film-outline" title="No clips left" hint="All clips of this video were deleted." />
       ) : null}
+
+      {posts.length ? (
+        <Card>
+          <SectionTitle>Posts</SectionTitle>
+          <View>
+            {posts.map((p, i) => (
+              <View key={p.id} style={i ? styles.divider : undefined}>
+                <PostRow
+                  post={p}
+                  compact
+                  onRetry={() => void act(`retry${p.id}`, async () => void (await api(`/publications/${p.id}/retry`, { method: 'POST' }), await loadPosts()))}
+                  onCancel={() => void act(`cancel${p.id}`, async () => void (await api(`/publications/${p.id}/cancel`, { method: 'POST' }), await loadPosts()))}
+                />
+              </View>
+            ))}
+          </View>
+        </Card>
+      ) : null}
+
+      <PublishSheet
+        visible={posting !== null}
+        clips={posting ?? []}
+        jobTitle={job.title}
+        onClose={() => setPosting(null)}
+        onDone={(made) => {
+          setPosting(null);
+          setPosted(made[0]?.scheduled ? `${made.length} post${made.length === 1 ? '' : 's'} scheduled. See them under Channels.` : `Posting to ${made.length} account${made.length === 1 ? '' : 's'}… progress is shown below.`);
+          void loadPosts();
+        }}
+      />
     </Screen>
   );
 }
@@ -227,5 +294,6 @@ const styles = StyleSheet.create({
   step: { flexDirection: 'row', alignItems: 'center', gap: 5 },
   actions: { flexDirection: 'row', flexWrap: 'wrap', gap: space.sm },
   grid: { flexDirection: 'row', flexWrap: 'wrap', gap: space.md, alignItems: 'flex-start' },
+  divider: { borderTopWidth: 1, borderTopColor: colors.border },
   back: { width: 42, height: 42, borderRadius: 21, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.surfaceAlt },
 });

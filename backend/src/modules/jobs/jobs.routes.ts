@@ -15,6 +15,7 @@ import { me } from '../../middleware/auth';
 import { parse } from '../../middleware/validate';
 import { optionsSchema } from '../../clipper/options';
 import { abortJob, nudgeQueue } from '../../clipper/queue';
+import { autoPublishSchema, type AutoPublish } from '../../social/autopublish';
 import { jobView } from './jobs.view';
 
 export const jobsRouter = Router();
@@ -64,6 +65,8 @@ const createBody = z.object({
   title: z.string().trim().max(200).optional(),
   thumbnailUrl: z.string().url().max(2000).optional(),
   options: optionsSchema,
+  /** Post every clip to these accounts when the job is done. */
+  autoPublish: autoPublishSchema.optional(),
 });
 
 /** Clip a video from a link. */
@@ -73,8 +76,9 @@ jobsRouter.post(
     const body = parse(createBody, req.body);
     checkLimits(body.options);
     const url = await assertPublicUrl(body.url);
+    const autoPublish = await checkAutoPublish(me(req).id, body.autoPublish);
     const job = await prisma.clipJob.create({
-      data: { userId: me(req).id, sourceKind: 'URL', sourceUrl: url, title: body.title || null, thumbnailUrl: body.thumbnailUrl ?? null, options: body.options },
+      data: { userId: me(req).id, sourceKind: 'URL', sourceUrl: url, title: body.title || null, thumbnailUrl: body.thumbnailUrl ?? null, options: body.options, autoPublish },
     });
     nudgeQueue();
     res.status(201).json({ job: jobView(job) });
@@ -109,10 +113,17 @@ jobsRouter.post(
       }
       const options = parse(optionsSchema, raw);
       checkLimits(options);
+      let rawAuto: unknown;
+      try {
+        rawAuto = req.body.autoPublish ? JSON.parse(String(req.body.autoPublish)) : undefined;
+      } catch {
+        throw badRequest('autoPublish must be JSON');
+      }
+      const autoPublish = await checkAutoPublish(me(req).id, rawAuto === undefined ? undefined : parse(autoPublishSchema, rawAuto));
       const name = path.basename(file.originalname).slice(0, 200);
       const title = typeof req.body.title === 'string' && req.body.title.trim() ? req.body.title.trim().slice(0, 200) : name.replace(VIDEO_EXT, '');
       const job = await prisma.clipJob.create({
-        data: { userId: me(req).id, sourceKind: 'UPLOAD', sourceName: name, title, options, status: JobStatus.CANCELLED, stage: 'Receiving upload' },
+        data: { userId: me(req).id, sourceKind: 'UPLOAD', sourceName: name, title, options, autoPublish, status: JobStatus.CANCELLED, stage: 'Receiving upload' },
       });
       const dir = jobDir(job.id);
       await fs.promises.mkdir(dir, { recursive: true });
@@ -223,6 +234,14 @@ jobsRouter.delete(
 function checkLimits(o: z.infer<typeof optionsSchema>) {
   if (o.maxClips > env.MAX_CLIPS_PER_JOB) throw badRequest(`At most ${env.MAX_CLIPS_PER_JOB} clips per video on this server`, 'TOO_MANY_CLIPS');
   if ((o.ranges?.length ?? 0) > env.MAX_CLIPS_PER_JOB) throw badRequest(`At most ${env.MAX_CLIPS_PER_JOB} ranges per video on this server`, 'TOO_MANY_CLIPS');
+}
+
+/** The accounts named for automatic posting must be this person's. */
+async function checkAutoPublish(userId: string, plan: AutoPublish | undefined) {
+  if (!plan) return undefined;
+  const found = await prisma.socialAccount.count({ where: { id: { in: plan.accountIds }, userId } });
+  if (found !== new Set(plan.accountIds).size) throw notFound('Account');
+  return plan as unknown as Prisma.InputJsonValue;
 }
 
 async function sourceOf(jobId: string) {

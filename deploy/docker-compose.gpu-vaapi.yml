@@ -1,0 +1,15 @@
+# Graphics card through VAAPI (Intel iGPU / Arc, AMD): added by deploy.sh when GPU=vaapi.
+# The card must be passed through to this VM first (docs/PROXMOX.md), so /dev/dri/renderD128 exists here.
+services:
+  api:
+    build:
+      context: ../backend
+      dockerfile: Dockerfile.gpu
+    environment:
+      VIDEO_ENCODER: ${VIDEO_ENCODER:-h264_vaapi}
+      VAAPI_DEVICE: /dev/dri/renderD128
+    devices:
+      - /dev/dri:/dev/dri
+    # The container's user must be allowed to open the render device
+    group_add:
+      - "${RENDER_GID:-993}"

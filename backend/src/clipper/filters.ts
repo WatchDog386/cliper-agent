@@ -15,7 +15,7 @@ const fixed = (n: number) => Number(n.toFixed(3)).toString();
  * chosen view (crop / blurred background / bars), sped up or slowed down, with optional fades.
  * Produces the labels [v] and, when there is sound to keep, [a].
  */
-export function buildFilterGraph(src: SourceInfo, o: Pick<ClipOptions, 'aspect' | 'fit' | 'focus' | 'quality' | 'fade' | 'mute' | 'speed'>, segmentSeconds: number) {
+export function buildFilterGraph(src: SourceInfo, o: Pick<ClipOptions, 'aspect' | 'fit' | 'focus' | 'quality' | 'fade' | 'mute' | 'speed'>, segmentSeconds: number, pixelTail = 'format=yuv420p') {
   const { width: W, height: H } = frameSize(o.aspect, o.quality, src);
   const f = FOCUS[o.focus];
   const outDuration = segmentSeconds / o.speed;
@@ -24,7 +24,8 @@ export function buildFilterGraph(src: SourceInfo, o: Pick<ClipOptions, 'aspect' 
   const tail: string[] = ['setsar=1'];
   if (o.speed !== 1) tail.push(`setpts=PTS/${fixed(o.speed)}`);
   if (o.fade) tail.push(`fade=t=in:st=0:d=${fixed(fadeLen)}`, `fade=t=out:st=${fixed(Math.max(0, outDuration - fadeLen))}:d=${fixed(fadeLen)}`);
-  tail.push('format=yuv420p');
+  // The last step hands the frames to the encoder in the form it wants (see encoder.ts)
+  tail.push(pixelTail);
   const finish = tail.join(',');
 
   let video: string;

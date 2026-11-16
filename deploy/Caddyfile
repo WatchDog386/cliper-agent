@@ -3,6 +3,12 @@
 # SITE_ADDRESS=:80                → plain HTTP on the server IP (testing only)
 {
 	email {$ACME_EMAIL:admin@example.com}
+	# Behind a Cloudflare Tunnel (a container on the private network) the visitor's real address
+	# arrives in X-Forwarded-For: keep it. Visitors connecting directly are never "private", so they
+	# cannot fake it.
+	servers {
+		trusted_proxies static private_ranges
+	}
 }
 
 {$SITE_ADDRESS::80} {

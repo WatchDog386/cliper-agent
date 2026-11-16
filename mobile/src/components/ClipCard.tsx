@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { Image, Pressable, StyleSheet, View } from 'react-native';
 import { useVideoPlayer, VideoView } from 'expo-video';
 import Ionicons from '@expo/vector-icons/Ionicons';
-import { colors, fonts, radius, space } from '../theme';
+import { colors, fonts, isDark, radius, shadow, space } from '../theme';
 import { mediaUrl } from '../api/client';
 import type { Clip } from '../api/types';
 import { bytes, clock } from '../utils/format';
@@ -18,7 +18,7 @@ function Player({ uri }: { uri: string }) {
 }
 
 /** One clip: thumbnail at its true shape (phone clips are tall, desktop clips wide), play, download. */
-export function ClipCard({ clip, onDownload, onDelete, width }: { clip: Clip; onDownload: () => void; onDelete?: () => void; width: number }) {
+export function ClipCard({ clip, onDownload, onDelete, onPublish, posted, width }: { clip: Clip; onDownload: () => void; onDelete?: () => void; onPublish?: () => void; /** How many accounts it has been posted to. */ posted?: number; width: number }) {
   const [playing, setPlaying] = useState(false);
   const ratio = clip.width / clip.height;
   // Tall clips are capped in height so a grid stays tidy
@@ -58,22 +58,32 @@ export function ClipCard({ clip, onDownload, onDelete, width }: { clip: Clip; on
           <Text variant="label" color={colors.textMuted}>
             {clock(clip.startSec)}–{clock(clip.endSec)} · {clip.width}×{clip.height} · {bytes(clip.sizeBytes)}
           </Text>
+          {posted ? (
+            <Text variant="label" color={colors.success} style={{ fontFamily: fonts.semibold }}>
+              Posted to {posted} account{posted === 1 ? '' : 's'}
+            </Text>
+          ) : null}
         </View>
         {onDelete ? (
           <Pressable onPress={onDelete} hitSlop={8} accessibilityLabel={`Delete clip ${clip.index}`} style={styles.iconBtn}>
             <Ionicons name="trash-outline" size={18} color={colors.textMuted} />
           </Pressable>
         ) : null}
-        <Pressable onPress={onDownload} hitSlop={8} accessibilityLabel={`Download clip ${clip.index}`} style={[styles.iconBtn, { backgroundColor: colors.brand }]}>
-          <Ionicons name="download-outline" size={18} color="#FFFFFF" />
+        <Pressable onPress={onDownload} hitSlop={8} accessibilityLabel={`Download clip ${clip.index}`} style={styles.iconBtn}>
+          <Ionicons name="download-outline" size={18} color={colors.text} />
         </Pressable>
+        {onPublish ? (
+          <Pressable onPress={onPublish} hitSlop={8} accessibilityLabel={`Post clip ${clip.index}`} style={[styles.iconBtn, { backgroundColor: colors.brand }]}>
+            <Ionicons name="paper-plane" size={16} color="#FFFFFF" />
+          </Pressable>
+        ) : null}
       </View>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  card: { backgroundColor: colors.glass, borderRadius: radius.lg, borderWidth: 1, borderColor: colors.glassBorder, overflow: 'hidden' },
+  card: { backgroundColor: colors.glass, borderRadius: radius.lg, borderWidth: 1, borderColor: colors.glassBorder, overflow: 'hidden', ...(isDark ? {} : shadow.card) },
   media: { backgroundColor: '#000', width: '100%' },
   play: {
     position: 'absolute',
@@ -89,6 +99,6 @@ const styles = StyleSheet.create({
   },
   badge: { position: 'absolute', right: 8, bottom: 8, backgroundColor: 'rgba(0,0,0,0.65)', paddingHorizontal: 7, paddingVertical: 2, borderRadius: 6, flexDirection: 'row', alignItems: 'center', gap: 3 },
   score: { right: undefined, left: 8, backgroundColor: 'rgba(255,77,94,0.9)' },
-  meta: { flexDirection: 'row', alignItems: 'center', gap: space.sm, padding: space.md },
+  meta: { flexDirection: 'row', alignItems: 'center', gap: 6, padding: space.md },
   iconBtn: { width: 36, height: 36, borderRadius: 18, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.surfaceAlt },
 });

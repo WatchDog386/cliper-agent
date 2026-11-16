@@ -5,6 +5,9 @@ import { ensureStorage } from './lib/storage';
 import { startQueue, stopQueue } from './clipper/queue';
 import { scheduleRetention } from './clipper/retention';
 import { checkTools } from './lib/tools';
+import { detectEncoder } from './clipper/encoder';
+import { startPublisher, stopPublisher } from './social/publisher';
+import { PLATFORMS, providers } from './social/providers';
 
 export function startServer() {
   ensureStorage();
@@ -22,13 +25,24 @@ export function startServer() {
   // Big uploads: no request timeout
   server.requestTimeout = 0;
 
-  startQueue();
+  // The encoder is tried before the first job starts, so a missing graphics card never fails a render
+  void detectEncoder()
+    .then((e) => {
+      console.log(`   ✔ encoder ${e.active}${e.hardware ? ' (hardware)' : ''} · ${e.parallel} clip(s) at a time`);
+      if (e.note) console.warn(`   ⚠ ${e.note}`);
+    })
+    .finally(() => startQueue());
+  startPublisher();
   scheduleRetention();
+  const social = PLATFORMS.filter((p) => providers[p].configured());
+  console.log(social.length ? `   ✔ posting to: ${social.map((p) => providers[p].label).join(', ')}` : '   · no social platforms set up yet (docs/SOCIAL.md)');
+  if (social.length && !env.PUBLIC_URL) console.warn('   ⚠ PUBLIC_URL is not set: the platforms need the exact address of this server to send people back after they approve.');
 
   const shutdown = async (signal: string) => {
     console.log(`${signal} received, shutting down…`);
     server.close();
     await stopQueue();
+    await stopPublisher();
     await prisma.$disconnect();
     process.exit(0);
   };

@@ -60,6 +60,7 @@ export interface Job {
   sourceWidth: number | null;
   sourceHeight: number | null;
   options: ClipOptions;
+  autoPublish: AutoPublish | null;
   status: JobStatus;
   progress: number;
   stage: string | null;
@@ -101,6 +102,65 @@ export interface AppConfig {
   allowSignup: boolean;
   limits: { maxSourceMinutes: number; maxClipsPerJob: number; maxUploadMb: number };
   discover: 'youtube-trending' | 'search';
+  social: Platform[];
+}
+
+/* ── Social accounts and posts ── */
+
+export type Platform = 'YOUTUBE' | 'TIKTOK' | 'INSTAGRAM' | 'FACEBOOK' | 'X' | 'LINKEDIN';
+export type Privacy = 'public' | 'unlisted' | 'private';
+
+export interface SocialProvider {
+  platform: Platform;
+  label: string;
+  /** "channel", "page", "account"… */
+  noun: string;
+  /** The server has this platform's developer-app credentials. */
+  configured: boolean;
+  envNames: [string, string];
+  privacy: Privacy[];
+  limits: { title?: number; caption: number; maxSeconds: number };
+  /** The address to register in the platform's developer console. */
+  redirectUri: string;
+}
+
+export interface SocialAccount {
+  id: string;
+  platform: Platform;
+  name: string;
+  handle: string | null;
+  avatarUrl: string | null;
+  needsReconnect: boolean;
+  connectedAt: string;
+}
+
+export type PublicationStatus = 'QUEUED' | 'PUBLISHING' | 'PUBLISHED' | 'FAILED' | 'CANCELLED';
+
+export interface Publication {
+  id: string;
+  status: PublicationStatus;
+  scheduled: boolean;
+  runAt: string;
+  title: string;
+  caption: string;
+  privacy: Privacy;
+  progress: number;
+  attempts: number;
+  error: string | null;
+  externalUrl: string | null;
+  createdAt: string;
+  publishedAt: string | null;
+  account: SocialAccount;
+  clip: { id: string; index: number; jobId: string; jobTitle: string | null; duration: number; thumbUrl: string | null } | null;
+}
+
+/** Post every clip of a job when it finishes. */
+export interface AutoPublish {
+  accountIds: string[];
+  caption: string;
+  title?: string;
+  privacy: Privacy;
+  everyMinutes: number;
 }
 
 export const ACTIVE: JobStatus[] = ['QUEUED', 'FETCHING', 'ANALYZING', 'RENDERING'];

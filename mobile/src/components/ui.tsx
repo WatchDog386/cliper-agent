@@ -2,7 +2,7 @@ import type { ReactNode } from 'react';
 import { ActivityIndicator, Pressable, RefreshControl, ScrollView, StyleSheet, Switch, View, type StyleProp, type ViewStyle } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Ionicons from '@expo/vector-icons/Ionicons';
-import { colors, fonts, radius, space } from '../theme';
+import { colors, fonts, isDark, radius, shadow, space } from '../theme';
 import { useDesktop } from '../theme/desktop';
 import type { Aspect, JobStatus } from '../api/types';
 import { Text } from './Text';
@@ -251,7 +251,7 @@ export function Notice({ tone = 'info', children }: { tone?: 'info' | 'danger' |
 const styles = StyleSheet.create({
   page: { width: '100%', alignSelf: 'center', paddingHorizontal: space.lg, gap: space.xl },
   head: { flexDirection: 'row', alignItems: 'center', gap: space.md },
-  card: { backgroundColor: colors.glass, borderRadius: radius.xl, borderWidth: 1, borderColor: colors.glassBorder, padding: space.lg + 2, gap: space.md },
+  card: { backgroundColor: colors.glass, borderRadius: radius.xl, borderWidth: 1, borderColor: colors.glassBorder, padding: space.lg + 2, gap: space.md, ...(isDark ? {} : shadow.card) },
   chips: { flexDirection: 'row', flexWrap: 'wrap', gap: space.sm },
   chip: {
     flexDirection: 'row',

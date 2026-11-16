@@ -19,6 +19,7 @@ type Icon = keyof typeof Ionicons.glyphMap;
 const TABS: Record<string, { label: string; icon: Icon; iconOn: Icon }> = {
   create: { label: 'Create', icon: 'add-circle-outline', iconOn: 'add-circle' },
   library: { label: 'My clips', icon: 'film-outline', iconOn: 'film' },
+  channels: { label: 'Channels', icon: 'share-social-outline', iconOn: 'share-social' },
   discover: { label: 'Trending', icon: 'flame-outline', iconOn: 'flame' },
   settings: { label: 'Settings', icon: 'settings-outline', iconOn: 'settings' },
 };
@@ -38,7 +39,7 @@ function TabBar({ state, navigation, desktop }: BottomTabBarProps & { desktop: b
           <LinearGradient colors={gradients.brand} style={styles.logo}>
             <Ionicons name="cut" size={18} color="#FFFFFF" />
           </LinearGradient>
-          <Text variant="h2" color={desk.navText} fixedColor style={{ fontFamily: fonts.bold }}>
+          <Text variant="h2" color={desk.navTextOn} fixedColor style={{ fontFamily: fonts.bold }}>
             Cliper Agent
           </Text>
         </View>
@@ -49,7 +50,7 @@ function TabBar({ state, navigation, desktop }: BottomTabBarProps & { desktop: b
           return (
             <Pressable key={r.key} onPress={() => go(r.name, r.key, on)} style={(s) => [styles.railItem, on && styles.railOn, (s as { hovered?: boolean }).hovered && !on && { backgroundColor: desk.navHover }]}>
               <Ionicons name={on ? t.iconOn : t.icon} size={20} color={on ? desk.navActive : desk.navMuted} />
-              <Text variant="body" color={on ? '#FFFFFF' : desk.navText} fixedColor style={{ fontFamily: on ? fonts.semibold : fonts.medium }}>
+              <Text variant="body" color={on ? desk.navTextOn : desk.navText} fixedColor style={{ fontFamily: on ? fonts.semibold : fonts.medium }}>
                 {t.label}
               </Text>
             </Pressable>
@@ -68,7 +69,7 @@ function TabBar({ state, navigation, desktop }: BottomTabBarProps & { desktop: b
           const on = state.index === i;
           return (
             <Pressable key={r.key} onPress={() => go(r.name, r.key, on)} accessibilityRole="tab" accessibilityLabel={t.label} accessibilityState={{ selected: on }} style={[styles.tab, on && styles.tabOn]}>
-              <Ionicons name={on ? t.iconOn : t.icon} size={21} color={on ? colors.onHighlight : 'rgba(255,255,255,0.75)'} />
+              <Ionicons name={on ? t.iconOn : t.icon} size={21} color={on ? colors.onHighlight : colors.barIcon} />
               {on ? (
                 <Text variant="label" color={colors.onHighlight} fixedColor style={{ fontFamily: fonts.semibold }}>
                   {t.label}
@@ -93,6 +94,7 @@ export default function TabsLayout() {
     >
       <Tabs.Screen name="create" />
       <Tabs.Screen name="library" />
+      <Tabs.Screen name="channels" />
       <Tabs.Screen name="discover" />
       <Tabs.Screen name="settings" />
     </Tabs>
@@ -101,12 +103,12 @@ export default function TabsLayout() {
 
 const styles = StyleSheet.create({
   floatWrap: { position: 'absolute', left: 0, right: 0, alignItems: 'center' },
-  float: { flexDirection: 'row', gap: 4, padding: 6, borderRadius: 999, backgroundColor: '#15161A', borderWidth: 1, borderColor: 'rgba(255,255,255,0.08)', ...shadow.bar },
-  tab: { height: 48, minWidth: 48, paddingHorizontal: 14, borderRadius: 24, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6 },
+  float: { flexDirection: 'row', gap: 4, padding: 6, borderRadius: 999, backgroundColor: colors.bar, borderWidth: 1, borderColor: colors.barBorder, ...shadow.bar },
+  tab: { height: 48, minWidth: 46, paddingHorizontal: 13, borderRadius: 24, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6 },
   tabOn: { backgroundColor: colors.highlight },
-  rail: { width: 236, backgroundColor: desk.nav, paddingVertical: 24, paddingHorizontal: 14, gap: 4 },
+  rail: { width: 236, backgroundColor: desk.nav, paddingVertical: 24, paddingHorizontal: 14, gap: 4, borderRightWidth: 1, borderRightColor: desk.navBorder },
   brandRow: { flexDirection: 'row', alignItems: 'center', gap: 10, paddingHorizontal: 8, marginBottom: 24 },
   logo: { width: 34, height: 34, borderRadius: 10, alignItems: 'center', justifyContent: 'center' },
   railItem: { flexDirection: 'row', alignItems: 'center', gap: 12, height: 44, paddingHorizontal: 12, borderRadius: 10 },
-  railOn: { backgroundColor: 'rgba(255,77,94,0.14)' },
+  railOn: { backgroundColor: desk.navOn },
 });

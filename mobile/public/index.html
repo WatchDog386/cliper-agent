@@ -3,7 +3,7 @@
   <head>
     <meta charset="utf-8" />
     <meta httpEquiv="X-UA-Compatible" content="IE=edge" />
-    <meta name="theme-color" content="#0E0F12" />
+    <meta name="theme-color" content="#F7F8FC" />
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="mobile-web-app-capable" content="yes" />
@@ -15,7 +15,16 @@
       html,
       body {
         height: 100%;
+        background: #f7f8fc;
+      }
+      html.dark,
+      html.dark body,
+      html.dark #boot-splash {
         background: #0e0f12;
+        color: #fff;
+      }
+      html.dark #boot-splash .tag {
+        color: rgba(255, 255, 255, 0.65);
       }
       body {
         overflow: hidden;
@@ -37,8 +46,8 @@
         align-items: center;
         justify-content: center;
         gap: 14px;
-        background: #0e0f12;
-        color: #fff;
+        background: #f7f8fc;
+        color: #15161a;
         font-family: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
         transition: opacity 0.3s ease;
       }
@@ -53,9 +62,11 @@
       }
       #boot-splash .tag {
         font-size: 14px;
-        color: rgba(255, 255, 255, 0.65);
+        color: #5d6170;
       }
     </style>
+    <!-- The look chosen in Settings, applied before anything is drawn (a file, not inline: the site's CSP allows only own scripts) -->
+    <script src="/theme.js"></script>
   </head>
   <body>
     <noscript>You need to enable JavaScript to run Cliper Agent.</noscript>

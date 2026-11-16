@@ -34,6 +34,7 @@ export function jobView(job: ClipJob & { clips?: Clip[]; _count?: { clips: numbe
     sourceWidth: job.sourceWidth,
     sourceHeight: job.sourceHeight,
     options: job.options,
+    autoPublish: job.autoPublish ?? null,
     status: job.status,
     progress: job.progress,
     stage: job.stage,

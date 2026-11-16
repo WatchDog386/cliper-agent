@@ -85,6 +85,9 @@ export async function downloadSource(url: string, dir: string, maxHeight: number
     '--newline',
     '--no-part',
     '--no-mtime',
+    // Segmented streams (most of YouTube, TikTok…) download several pieces at a time
+    '--concurrent-fragments',
+    '4',
     '-f',
     // Short side ≤ h, whether the video is landscape or portrait
     `bv*[height<=${h}]+ba/bv*[width<=${h}]+ba/b[height<=${h}]/b[width<=${h}]/bv*+ba/b`,

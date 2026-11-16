@@ -51,7 +51,7 @@ export default function Login() {
           <Text variant="display" color="#FFFFFF" fixedColor style={{ fontFamily: fonts.bold, fontSize: 30 }}>
             {config?.appName ?? 'Cliper Agent'}
           </Text>
-          <Text variant="body" color="rgba(255,255,255,0.75)" fixedColor>
+          <Text variant="body" color="rgba(255,255,255,0.9)" fixedColor>
             Paste a trending video link. Get ready-to-post clips for phone or desktop in minutes.
           </Text>
           <View style={styles.points}>
@@ -61,7 +61,7 @@ export default function Login() {
               ['flame-outline', 'Auto-pick the best moments'],
             ].map(([icon, label]) => (
               <View key={label} style={styles.point}>
-                <Ionicons name={icon as 'link-outline'} size={16} color="#E6F03A" />
+                <Ionicons name={icon as 'link-outline'} size={16} color="#FFFFFF" />
                 <Text variant="bodySm" color="#FFFFFF" fixedColor>
                   {label}
                 </Text>

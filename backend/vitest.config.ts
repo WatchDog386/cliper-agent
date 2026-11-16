@@ -18,6 +18,14 @@ export default defineConfig({
       API_RATE_LIMIT: '100000',
       STORAGE_DIR: 'storage-test',
       ALLOW_SIGNUP: 'true',
+      // Never inherit a developer's local .env here: the tests check that private links are refused
+      ALLOW_PRIVATE_URLS: 'false',
+      // Two platforms are "set up" for the tests; the rest stay unconfigured
+      PUBLIC_URL: 'https://clips.test',
+      YOUTUBE_CLIENT_ID: 'yt-id',
+      YOUTUBE_CLIENT_SECRET: 'yt-secret',
+      X_CLIENT_ID: 'x-id',
+      X_CLIENT_SECRET: 'x-secret',
     },
   },
 });

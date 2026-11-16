@@ -62,7 +62,7 @@ export default function Library() {
   return (
     <Screen
       title="My clips"
-      subtitle={stats ? `${stats.clips} clips from ${stats.total} videos${stats.active ? ` · ${stats.active} working` : ''}` : undefined}
+      subtitle={stats ? `${stats.clips} clip${stats.clips === 1 ? '' : 's'} from ${stats.total} video${stats.total === 1 ? '' : 's'}${stats.active ? ` · ${stats.active} working` : ''}` : undefined}
       refreshing={refreshing}
       onRefresh={async () => {
         setRefreshing(true);
