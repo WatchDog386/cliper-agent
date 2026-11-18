@@ -1,0 +1,33 @@
+{
+  "name": "cliper-agent-desktop",
+  "version": "1.0.0",
+  "private": true,
+  "main": "src/index.tsx",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview",
+    "typecheck": "tsc --noEmit",
+    "lint": "eslint src --ext .ts,.tsx"
+  },
+  "dependencies": {
+    "@tanstack/react-query": "^5.56.0",
+    "axios": "^1.7.2",
+    "lucide-react": "^0.445.0",
+    "react": "19.0.0",
+    "react-dom": "19.0.0"
+  },
+  "devDependencies": {
+    "@types/react": "~19.2",
+    "@types/react-dom": "~19.2",
+    "@vitejs/plugin-react": "^5.4.1",
+    "autoprefixer": "^10.4.20",
+    "eslint": "^9.16.0",
+    "eslint-config-prettier": "^9.1.0",
+    "eslint-plugin-react": "^7.37.0",
+    "postcss": "^8.4.41",
+    "prettier": "^3.3.3",
+    "typescript": "~5.9",
+    "vite": "^5.4.2"
+  }
+}
