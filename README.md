@@ -91,10 +91,9 @@ Step by step, including Supabase connection strings and auto captions: **[docs/L
 Short version:
 
 ```bash
-cd backend && cp .env.example .env     # set DATABASE_URL (Supabase Session pooler), JWT_SECRET, keys
-npm install && npm run setup           # yt-dlp, tables, then a health check (npm run doctor)
-npm run dev
-cd ../mobile && npm install && npx expo start --web
+npm run setup     # from the top folder: installs, creates .env files, yt-dlp, tables, health check
+                  # first time: put your Supabase DATABASE_URL + OPUSCLIP_API_KEY in backend/.env, run it again
+npm run dev       # API on :4000 + web app on :8081
 ```
 
 ## Local development

@@ -27,33 +27,32 @@ If the password has special characters (`@ : / ? # %`), URL-encode them (`@` →
 
 > No Supabase? `docker compose up -d db` starts a local Postgres; keep the default `DATABASE_URL`.
 
-## 3. API
+## 3. Set up (one command, from the top folder)
+
+Run this from the **top folder** (the one with `backend` and `mobile` inside), not from `backend`:
 
 ```bash
-cd backend
-cp .env.example .env          # Windows (PowerShell): Copy-Item .env.example .env
+npm run setup
 ```
 
-Edit `backend/.env`:
+It installs the API and the app, creates `backend/.env` and `mobile/.env`, generates a random
+`JWT_SECRET`, downloads yt-dlp, creates the tables and runs the doctor. The first run stops at the
+database step until you paste your Supabase string:
 
-| Setting | Value |
-|---|---|
-| `DATABASE_URL` | your Supabase string from step 2 |
-| `JWT_SECRET` | a random string: `node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"` |
-| `OPUSCLIP_API_KEY` | `sk-…` from OpusClip (AI clips). Optional |
-| `YOUTUBE_API_KEY` | YouTube Data API key (live Trending chart). Optional |
-| `WHISPER_CMD` | see step 4. Optional |
+1. Open `backend/.env` and set `DATABASE_URL` to the string from step 2. Add `OPUSCLIP_API_KEY=sk-…` for AI clips (and optionally `YOUTUBE_API_KEY`).
+2. Run `npm run setup` again. It ends with the doctor's checklist; fix anything marked ✗.
 
-Then:
+Then start everything:
 
 ```bash
-npm install                   # also installs ffmpeg + ffprobe (ffmpeg-static)
-npm run setup                 # downloads yt-dlp, creates the tables in Supabase, runs the doctor
-npm run dev                   # http://localhost:4000/api/v1
+npm run dev          # API on http://localhost:4000 and the web app on http://localhost:8081
 ```
 
-`npm run doctor` checks everything (database, schema, storage, ffmpeg + captions support, yt-dlp,
-speech-to-text, OpusClip key) and prints the fix for anything missing. Run it whenever something is off.
+Other commands from the top folder: `npm run doctor` (health check), `npm run api` / `npm run web`
+(one at a time), `npm run migrate` (apply new database changes after a `git pull`).
+
+> **Windows + OneDrive:** a folder under OneDrive (e.g. `Desktop`) syncs `node_modules` and can lock files
+> during installs (`EPERM`, `EBUSY`). If that happens, move the folder to `C:\dev\cliper-agent`.
 
 ## 4. Auto captions (optional, recommended)
 
@@ -82,17 +81,9 @@ set `FFMPEG_PATH=ffmpeg` and `FFPROBE_PATH=ffprobe` in `backend/.env`.
 
 ## 5. Web app
 
-In a second terminal:
-
-```bash
-cd mobile
-cp .env.example .env          # EXPO_PUBLIC_API_URL=http://localhost:4000/api/v1
-npm install
-npx expo start --web          # opens http://localhost:8081
-```
-
-Create the first account: **it becomes the admin**. To use the app from your phone on the same Wi-Fi,
-set `EXPO_PUBLIC_API_URL=http://YOUR-LAPTOP-IP:4000/api/v1` and scan the QR code with Expo Go.
+`npm run dev` already starts it at http://localhost:8081. Create the first account: **it becomes the admin**.
+To use the app from your phone on the same Wi-Fi, set `EXPO_PUBLIC_API_URL=http://YOUR-LAPTOP-IP:4000/api/v1`
+in `mobile/.env` and scan the QR code with Expo Go.
 
 ## Where things live
 

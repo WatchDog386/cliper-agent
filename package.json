@@ -1,0 +1,16 @@
+{
+  "name": "cliper-agent",
+  "private": true,
+  "description": "Cliper Agent: run `npm run setup` once, then `npm run dev`",
+  "scripts": {
+    "setup": "node scripts/setup.mjs",
+    "dev": "node scripts/dev.mjs",
+    "api": "npm --prefix backend run dev",
+    "web": "npm --prefix mobile run web",
+    "doctor": "npm --prefix backend run doctor",
+    "migrate": "npm --prefix backend run db:deploy"
+  },
+  "engines": {
+    "node": ">=22"
+  }
+}
