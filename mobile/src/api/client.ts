@@ -60,7 +60,7 @@ export async function api<T>(path: string, options: { method?: string; body?: Bo
  * { uri, name, type } object.
  */
 export function uploadVideo<T>(path: string, form: FormData, onProgress: (fraction: number) => void): Promise<T> {
-  if (DEMO) return import('./demo').then((d) => d.demoUpload<T>(onProgress));
+  if (DEMO) return import('./demo').then((d) => (path.startsWith('/brand-kits/') ? d.demoApi<T>(path, { method: 'POST' }) : d.demoUpload<T>(onProgress)));
   const token = useAuth.getState().token;
   return new Promise((resolve, reject) => {
     const xhr = new XMLHttpRequest();

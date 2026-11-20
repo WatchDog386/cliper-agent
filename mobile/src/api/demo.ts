@@ -1,4 +1,4 @@
-import type { AdminUser, AiStatus, AppConfig, Clip, ClipOptions, DiscoverItem, Job, JobStatus, SourceMeta, User } from './types';
+import type { AdminUser, AiStatus, AppConfig, BrandKit, Clip, ClipOptions, DiscoverItem, Job, JobStatus, ScheduledPost, SourceMeta, User } from './types';
 import { ApiError } from './client';
 
 /*
@@ -164,6 +164,31 @@ const TRENDING: DiscoverItem[] = [
   'Unboxing the phone nobody expected',
 ].map((title, i) => ({ id: `t${i}`, title, channel: ['ESPN', 'MKBHD', 'Y Combinator', 'Gordon', 'Hot Ones', 'Vox', 'Ali Abdaal', 'Linus'][i]!, thumbnail: thumb(i * 7 + 1, 320, 180), duration: 300 + i * 211, views: 380_000 * (i + 1) * (9 - i), publishedAt: iso((i + 1) * 5 * 3600_000), url: `https://www.youtube.com/watch?v=demo${i}` }));
 
+const LOGO = `data:image/svg+xml;base64,${btoa('<svg xmlns="http://www.w3.org/2000/svg" width="240" height="80"><rect width="240" height="80" rx="18" fill="#0A0A0F"/><text x="120" y="52" font-family="Arial Black,Arial" font-weight="900" font-size="30" fill="#C8FF2E" text-anchor="middle">NOVA</text></svg>')}`;
+let kits: BrandKit[] = [
+  { id: 'k1', name: 'Nova Podcast', primaryColor: '#C8FF2E', secondaryColor: '#0A0A0F', logoUrl: LOGO, logoPosition: 'top-right', logoSize: 22, logoOpacity: 0.95, isDefault: true, createdAt: iso(9 * 86400_000) },
+  { id: 'k2', name: 'Sports desk', primaryColor: '#FF4FA3', secondaryColor: '#38E1FF', logoUrl: null, logoPosition: 'bottom-left', logoSize: 14, logoOpacity: 0.8, isDefault: false, createdAt: iso(4 * 86400_000) },
+];
+const day = (d: number, h: number) => {
+  const t = new Date();
+  t.setDate(t.getDate() + d);
+  t.setHours(h, 0, 0, 0);
+  return t.toISOString();
+};
+let posts: ScheduledPost[] = [];
+function seedPosts() {
+  if (posts.length) return;
+  const src = jobs[0]!;
+  const plan: [number, number, ScheduledPost['platform'], ScheduledPost['status']][] = [
+    [-3, 18, 'tiktok', 'POSTED'], [-1, 12, 'instagram', 'POSTED'], [0, 19, 'tiktok', 'PLANNED'], [1, 9, 'youtube', 'PLANNED'],
+    [2, 17, 'x', 'PLANNED'], [4, 20, 'instagram', 'PLANNED'], [6, 13, 'linkedin', 'PLANNED'], [9, 18, 'tiktok', 'PLANNED'], [12, 11, 'youtube', 'PLANNED'],
+  ];
+  posts = plan.map(([d, h, platform, status], i) => {
+    const c = src.clips[i % src.clips.length]!;
+    return { id: `p${i}`, platform, status, scheduledAt: day(d, h), caption: `${c.description ?? ''} ${c.hashtags ?? ''}`.trim(), clip: { id: c.id, jobId: src.id, index: c.index, title: c.title ?? `Clip ${c.index}`, duration: c.duration, width: c.width, height: c.height, thumbUrl: c.thumbUrl, downloadUrl: '' } };
+  });
+}
+
 export async function demoApi<T>(path: string, options: { method?: string; body?: unknown } = {}): Promise<T> {
   await sleep(180);
   const method = options.method ?? (options.body ? 'POST' : 'GET');
@@ -202,6 +227,49 @@ export async function demoApi<T>(path: string, options: { method?: string; body?
     running.set(j.id, Date.now());
     return out({ job: j });
   }
+  if (route === '/brand-kits' && method === 'GET') return out({ kits });
+  if (route === '/brand-kits' && method === 'POST') {
+    const k: BrandKit = { id: `k${Date.now()}`, primaryColor: '#C8FF2E', secondaryColor: '#9B6BFF', logoUrl: null, logoPosition: 'top-right', logoSize: 14, logoOpacity: 0.9, createdAt: new Date().toISOString(), ...(body as Partial<BrandKit>), name: String(body.name ?? 'Brand kit'), isDefault: !kits.length || !!body.isDefault };
+    if (k.isDefault) kits = kits.map((x) => ({ ...x, isDefault: false }));
+    kits = [...kits, k];
+    return out({ kit: k });
+  }
+  const km = route?.match(/^\/brand-kits\/([^/]+)(\/logo)?$/);
+  if (km) {
+    const k = kits.find((x) => x.id === km[1]);
+    if (!k) throw new ApiError(404, 'Brand kit not found');
+    if (km[2]) Object.assign(k, { logoUrl: method === 'DELETE' ? null : LOGO });
+    else if (method === 'DELETE') return (kits = kits.filter((x) => x !== k)), out({});
+    else {
+      if (body.isDefault) kits.forEach((x) => (x.isDefault = false));
+      Object.assign(k, body);
+    }
+    return out({ kit: k });
+  }
+  if (route === '/posts' && method === 'GET') {
+    seedPosts();
+    const from = q.get('from') ? new Date(q.get('from')!).getTime() : -Infinity;
+    const to = q.get('to') ? new Date(q.get('to')!).getTime() : Infinity;
+    return out({ posts: posts.filter((p) => +new Date(p.scheduledAt) >= from && +new Date(p.scheduledAt) < to).sort((a, b) => a.scheduledAt.localeCompare(b.scheduledAt)) });
+  }
+  if (route === '/posts' && method === 'POST') {
+    seedPosts();
+    const j = jobs.find((x) => x.clips.some((c) => c.id === body.clipId));
+    const c = j?.clips.find((x) => x.id === body.clipId);
+    if (!j || !c) throw new ApiError(404, 'Clip not found');
+    const p: ScheduledPost = { id: `p${Date.now()}`, platform: body.platform as ScheduledPost['platform'], caption: String(body.caption ?? ''), scheduledAt: String(body.scheduledAt), status: 'PLANNED', clip: { id: c.id, jobId: j.id, index: c.index, title: c.title ?? `Clip ${c.index}`, duration: c.duration, width: c.width, height: c.height, thumbUrl: c.thumbUrl, downloadUrl: '' } };
+    posts = [...posts, p];
+    return out({ post: p });
+  }
+  const pm = route?.match(/^\/posts\/([^/]+)$/);
+  if (pm) {
+    const p = posts.find((x) => x.id === pm[1]);
+    if (!p) throw new ApiError(404, 'Post not found');
+    if (method === 'DELETE') return (posts = posts.filter((x) => x !== p)), out({});
+    Object.assign(p, body);
+    return out({ post: p });
+  }
+
   const m = route?.match(/^\/jobs\/([^/]+)(?:\/(cancel|retry|reclip|clips\/(.+)))?$/);
   if (m) {
     const j = jobs.find((x) => x.id === m[1]);

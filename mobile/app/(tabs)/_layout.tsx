@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Pressable, StyleSheet, View } from 'react-native';
+import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import { Redirect, router, Tabs } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -27,6 +27,38 @@ const TABS: Record<string, { label: string; icon: Icon; iconOn: Icon }> = {
   discover: { label: 'Trending', icon: 'flame-outline', iconOn: 'flame' },
   settings: { label: 'Settings', icon: 'settings-outline', iconOn: 'settings' },
 };
+
+/** Desktop rail sections. `match` is the tab route name(s) that light the item up. */
+const NAV: { title: string; items: { label: string; icon: Icon; iconOn: Icon; href: string; match: string[] }[] }[] = [
+  {
+    title: 'Workspace',
+    items: [
+      { label: 'Home', icon: 'home-outline', iconOn: 'home', href: '/home', match: ['home'] },
+      { label: 'Create', icon: 'add-circle-outline', iconOn: 'add-circle', href: '/create', match: ['create'] },
+      { label: 'Projects', icon: 'albums-outline', iconOn: 'albums', href: '/library', match: ['library'] },
+      { label: 'Trending', icon: 'flame-outline', iconOn: 'flame', href: '/discover', match: ['discover'] },
+    ],
+  },
+  {
+    title: 'Brand',
+    items: [
+      { label: 'Brand templates', icon: 'color-palette-outline', iconOn: 'color-palette', href: '/brands', match: ['brands'] },
+      { label: 'Brand kits', icon: 'briefcase-outline', iconOn: 'briefcase', href: '/brand-kits', match: ['brand-kits'] },
+    ],
+  },
+  {
+    title: 'Publish',
+    items: [{ label: 'Calendar', icon: 'calendar-outline', iconOn: 'calendar', href: '/calendar', match: ['calendar'] }],
+  },
+  {
+    title: 'Resources',
+    items: [
+      { label: 'Learning center', icon: 'school-outline', iconOn: 'school', href: '/learn', match: ['learn/index', 'learn/[slug]'] },
+      { label: 'Help', icon: 'help-buoy-outline', iconOn: 'help-buoy', href: '/help', match: ['help'] },
+      { label: 'Settings', icon: 'settings-outline', iconOn: 'settings', href: '/settings', match: ['settings'] },
+    ],
+  },
+];
 
 function AiCard() {
   const [ai, setAi] = useState<boolean | null>(null);
@@ -59,6 +91,7 @@ function TabBar({ state, navigation, desktop }: BottomTabBarProps & { desktop: b
     if (!focused && !e.defaultPrevented) navigation.navigate(name);
   };
 
+  const current = state.routes[state.index]?.name ?? '';
   if (desktop) {
     return (
       <View style={styles.rail}>
@@ -81,32 +114,35 @@ function TabBar({ state, navigation, desktop }: BottomTabBarProps & { desktop: b
             New project
           </Text>
         </Pressable>
-        <Text variant="overline" color={colors.textDim} style={{ marginTop: 18, marginBottom: 6, marginLeft: 12 }}>
-          Workspace
-        </Text>
-        {state.routes.map((r, i) => {
-          const t = TABS[r.name];
-          if (!t) return null;
-          const on = state.index === i;
-          return (
-            <Pressable key={r.key} onPress={() => go(r.name, r.key, on)} style={(s) => [styles.railItem, on && styles.railOn, (s as { hovered?: boolean }).hovered && !on && { backgroundColor: colors.surfaceAlt }]}>
-              {on ? <View style={styles.railMark} /> : null}
-              <Ionicons name={on ? t.iconOn : t.icon} size={19} color={on ? colors.text : colors.textMuted} />
-              <Text variant="body" color={on ? colors.text : colors.textMuted} style={{ fontFamily: on ? fonts.semibold : fonts.medium, fontSize: 14.5 }}>
-                {t.label}
+        <ScrollView style={{ flex: 1, marginTop: 8 }} contentContainerStyle={{ gap: 2, paddingBottom: 12 }} showsVerticalScrollIndicator={false}>
+          {NAV.map((g) => (
+            <View key={g.title} style={{ gap: 2 }}>
+              <Text variant="overline" color={colors.textDim} style={{ marginTop: 14, marginBottom: 4, marginLeft: 12 }}>
+                {g.title}
+              </Text>
+              {g.items.map((t) => {
+                const on = t.match.includes(current);
+                return (
+                  <Pressable key={t.href} onPress={() => router.navigate(t.href as never)} style={(s) => [styles.railItem, on && styles.railOn, (s as { hovered?: boolean }).hovered && !on && { backgroundColor: colors.surfaceAlt }]}>
+                    {on ? <View style={styles.railMark} /> : null}
+                    <Ionicons name={on ? t.iconOn : t.icon} size={18} color={on ? colors.text : colors.textMuted} />
+                    <Text variant="body" color={on ? colors.text : colors.textMuted} style={{ fontFamily: on ? fonts.semibold : fonts.medium, fontSize: 14 }}>
+                      {t.label}
+                    </Text>
+                  </Pressable>
+                );
+              })}
+            </View>
+          ))}
+          {user?.role === 'ADMIN' ? (
+            <Pressable onPress={() => router.push('/admin')} style={(s) => [styles.railItem, (s as { hovered?: boolean }).hovered && { backgroundColor: colors.surfaceAlt }]}>
+              <Ionicons name="shield-checkmark-outline" size={18} color={colors.textMuted} />
+              <Text variant="body" color={colors.textMuted} style={{ fontFamily: fonts.medium, fontSize: 14 }}>
+                Admin
               </Text>
             </Pressable>
-          );
-        })}
-        {user?.role === 'ADMIN' ? (
-          <Pressable onPress={() => router.push('/admin')} style={(s) => [styles.railItem, (s as { hovered?: boolean }).hovered && { backgroundColor: colors.surfaceAlt }]}>
-            <Ionicons name="shield-checkmark-outline" size={19} color={colors.textMuted} />
-            <Text variant="body" color={colors.textMuted} style={{ fontFamily: fonts.medium, fontSize: 14.5 }}>
-              Admin
-            </Text>
-          </Pressable>
-        ) : null}
-        <View style={{ flex: 1 }} />
+          ) : null}
+        </ScrollView>
         <AiCard />
         {user ? (
           <View style={styles.user}>
@@ -171,6 +207,13 @@ export default function TabsLayout() {
       <Tabs.Screen name="library" />
       <Tabs.Screen name="discover" />
       <Tabs.Screen name="settings" />
+      {/* Reached from the rail (desktop) and Settings → More (phones); not in the phone tab bar */}
+      <Tabs.Screen name="brands" />
+      <Tabs.Screen name="brand-kits" />
+      <Tabs.Screen name="calendar" />
+      <Tabs.Screen name="learn/index" />
+      <Tabs.Screen name="learn/[slug]" />
+      <Tabs.Screen name="help" />
     </Tabs>
   );
 }
@@ -184,9 +227,9 @@ const styles = StyleSheet.create({
   brandRow: { flexDirection: 'row', alignItems: 'center', gap: 10, paddingHorizontal: 8, marginBottom: 18 },
   demo: { backgroundColor: colors.highlight, borderRadius: 5, paddingHorizontal: 5, paddingVertical: 1 },
   newBtn: { height: 42, borderRadius: radius.md, backgroundColor: colors.highlight, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, ...shadow.glow },
-  railItem: { flexDirection: 'row', alignItems: 'center', gap: 12, height: 42, paddingHorizontal: 12, borderRadius: radius.md },
+  railItem: { flexDirection: 'row', alignItems: 'center', gap: 12, height: 38, paddingHorizontal: 12, borderRadius: radius.md },
   railOn: { backgroundColor: colors.surfaceHigh },
-  railMark: { position: 'absolute', left: -14, top: 10, bottom: 10, width: 3, borderRadius: 2, backgroundColor: colors.highlight },
+  railMark: { position: 'absolute', left: -14, top: 9, bottom: 9, width: 3, borderRadius: 2, backgroundColor: colors.highlight },
   aiCard: { borderRadius: radius.lg, padding: 14, gap: 6, overflow: 'hidden', borderWidth: 1, borderColor: 'rgba(155,107,255,0.35)', marginBottom: 10 },
   dot: { width: 7, height: 7, borderRadius: 4, marginLeft: 'auto' },
   user: { flexDirection: 'row', alignItems: 'center', gap: 10, padding: 8, borderRadius: radius.md, borderWidth: 1, borderColor: colors.border },

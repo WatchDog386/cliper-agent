@@ -36,6 +36,8 @@ export interface ClipOptions {
   aiTemplateId?: string;
   aiHook?: boolean;
   aiLanguage?: string;
+  /** Brand kit whose logo is stamped on the clips (local modes). */
+  brandKitId?: string;
 }
 
 export type JobStatus = 'QUEUED' | 'FETCHING' | 'ANALYZING' | 'RENDERING' | 'DONE' | 'FAILED' | 'CANCELLED';
@@ -133,3 +135,30 @@ export interface AdminUser extends User {
 }
 
 export const ACTIVE: JobStatus[] = ['QUEUED', 'FETCHING', 'ANALYZING', 'RENDERING'];
+
+export type LogoPosition = 'top-left' | 'top-right' | 'bottom-left' | 'bottom-right';
+
+export interface BrandKit {
+  id: string;
+  name: string;
+  primaryColor: string;
+  secondaryColor: string;
+  logoUrl: string | null;
+  logoPosition: LogoPosition;
+  logoSize: number;
+  logoOpacity: number;
+  isDefault: boolean;
+  createdAt: string;
+}
+
+export type Platform = 'tiktok' | 'instagram' | 'youtube' | 'x' | 'facebook' | 'linkedin';
+export type PostStatus = 'PLANNED' | 'POSTED' | 'SKIPPED';
+
+export interface ScheduledPost {
+  id: string;
+  platform: Platform;
+  caption: string;
+  scheduledAt: string;
+  status: PostStatus;
+  clip: { id: string; jobId: string; index: number; title: string; duration: number; width: number; height: number; thumbUrl: string | null; downloadUrl: string };
+}

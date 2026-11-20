@@ -7,6 +7,15 @@ export interface SourceInfo {
 }
 
 const FOCUS = { start: 0, center: 0.5, end: 1 } as const;
+
+/** A logo stamped on the clip (from a brand kit). It is the second ffmpeg input, [1:v]. */
+export interface Watermark {
+  position: 'top-left' | 'top-right' | 'bottom-left' | 'bottom-right';
+  /** Logo width as a percentage of the frame width (4–40). */
+  size: number;
+  /** 0.1–1 */
+  opacity: number;
+}
 const even = (n: number) => Math.max(2, Math.round(n / 2) * 2);
 const fixed = (n: number) => Number(n.toFixed(3)).toString();
 
@@ -15,7 +24,7 @@ const fixed = (n: number) => Number(n.toFixed(3)).toString();
  * chosen view (crop / blurred background / bars), sped up or slowed down, with optional fades.
  * Produces the labels [v] and, when there is sound to keep, [a].
  */
-export function buildFilterGraph(src: SourceInfo, o: Pick<ClipOptions, 'aspect' | 'fit' | 'focus' | 'quality' | 'fade' | 'mute' | 'speed'>, segmentSeconds: number) {
+export function buildFilterGraph(src: SourceInfo, o: Pick<ClipOptions, 'aspect' | 'fit' | 'focus' | 'quality' | 'fade' | 'mute' | 'speed'>, segmentSeconds: number, mark?: Watermark) {
   const { width: W, height: H } = frameSize(o.aspect, o.quality, src);
   const f = FOCUS[o.focus];
   const outDuration = segmentSeconds / o.speed;
@@ -43,6 +52,17 @@ export function buildFilterGraph(src: SourceInfo, o: Pick<ClipOptions, 'aspect' 
       `[bgb][fgs]overlay=(main_w-overlay_w)/2:(main_h-overlay_h)/2,${finish}[v]`;
   } else {
     video = `[0:v]scale=${W}:${H}:force_original_aspect_ratio=increase,crop=${W}:${H}:(iw-ow)*${f}:(ih-oh)*${f},${finish}[v]`;
+  }
+
+  if (mark) {
+    // The reframed picture becomes [base]; the logo is scaled, faded and laid over a corner of it
+    video = video.replace(/\[v\]$/, '[base]');
+    const lw = even((W * Math.max(4, Math.min(40, mark.size))) / 100);
+    const margin = Math.round(Math.min(W, H) * 0.04);
+    const x = mark.position.endsWith('left') ? `${margin}` : `main_w-overlay_w-${margin}`;
+    const y = mark.position.startsWith('top') ? `${margin}` : `main_h-overlay_h-${margin}`;
+    const alpha = fixed(Math.max(0.1, Math.min(1, mark.opacity)));
+    video += `;[1:v]scale=${lw}:-2,format=rgba,colorchannelmixer=aa=${alpha}[logo];[base][logo]overlay=${x}:${y}:format=auto,format=yuv420p[v]`;
   }
 
   const withAudio = src.hasAudio && !o.mute;

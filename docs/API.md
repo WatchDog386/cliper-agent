@@ -120,3 +120,25 @@ Prefix every path with `/api/v1`. Tokens last 12 hours. Fetch the job again for 
 | Method | Path | |
 |---|---|---|
 | GET | `/system` | `{ tools: { "yt-dlp", ffmpeg, ffprobe: { ok, version, path } }, queue: { running, concurrency } }` |
+
+## Brand kits
+
+| Method | Path | |
+|---|---|---|
+| GET | `/brand-kits` | `{ kits: [{ id, name, primaryColor, secondaryColor, logoUrl (data URI), logoPosition, logoSize, logoOpacity, isDefault }] }` |
+| POST | `/brand-kits` | `{ name, primaryColor?, secondaryColor?, logoPosition?, logoSize? (4–40 % of width), logoOpacity? (0.1–1), isDefault? }` → `201 { kit }` (the first kit is the default) |
+| PATCH | `/brand-kits/:id` | any of the above → `{ kit }` |
+| DELETE | `/brand-kits/:id` | `204` |
+| POST | `/brand-kits/:id/logo` | multipart `file` (PNG / JPEG / WebP, ≤ 1 MB) → `{ kit }` |
+| DELETE | `/brand-kits/:id/logo` | `{ kit }` |
+
+Pass `brandKitId` in the clip options to stamp the kit's logo on every clip (split, highlights and custom modes).
+
+## Content calendar
+
+| Method | Path | |
+|---|---|---|
+| GET | `/posts?from=ISO&to=ISO` | `{ posts: [{ id, platform, caption, scheduledAt, status, clip: { id, jobId, title, thumbUrl, downloadUrl, … } }] }` |
+| POST | `/posts` | `{ clipId, platform (tiktok \| instagram \| youtube \| x \| facebook \| linkedin), caption?, scheduledAt }` → `201 { post }` |
+| PATCH | `/posts/:id` | `{ platform?, caption?, scheduledAt?, status? (PLANNED \| POSTED \| SKIPPED) }` → `{ post }` |
+| DELETE | `/posts/:id` | `204` |

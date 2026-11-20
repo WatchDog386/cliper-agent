@@ -6,9 +6,11 @@ import * as Clipboard from 'expo-clipboard';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { Button, IconButton } from '../../../src/components/Button';
 import { Text } from '../../../src/components/Text';
-import { Badge, Card, Notice, Screen, ScoreRing, Skeleton } from '../../../src/components/ui';
+import { Badge, Card, Chips, Notice, Screen, ScoreRing, Skeleton } from '../../../src/components/ui';
+import { Input } from '../../../src/components/Input';
+import { PLATFORM_KEYS, PLATFORMS } from '../../../src/utils/platforms';
 import { api, DEMO, mediaUrl } from '../../../src/api/client';
-import type { Clip, Job } from '../../../src/api/types';
+import type { Clip, Job, Platform as Social } from '../../../src/api/types';
 import { colors, fonts, radius, space } from '../../../src/theme';
 import { useDesktop } from '../../../src/theme/desktop';
 import { bytes, clock } from '../../../src/utils/format';
@@ -23,6 +25,59 @@ function Player({ clip }: { clip: Clip }) {
   return <VideoView player={player} style={StyleSheet.absoluteFill} contentFit="contain" nativeControls allowsPictureInPicture />;
 }
 
+const TIMES = ['09:00', '12:00', '15:00', '18:00', '20:00'];
+
+/** Plan this clip on the content calendar: platform, day, time and caption. */
+function ScheduleForm({ clip, caption, onDone }: { clip: Clip; caption: string; onDone: (msg: string) => void }) {
+  const tall = clip.height > clip.width;
+  const [platform, setPlatform] = useState<Social>(tall ? 'tiktok' : 'youtube');
+  const [dayOffset, setDayOffset] = useState(1);
+  const [at, setAt] = useState('18:00');
+  const [text, setText] = useState(caption);
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState('');
+  const days = Array.from({ length: 14 }, (_, i) => {
+    const d = new Date();
+    d.setDate(d.getDate() + i);
+    return { value: i, label: i === 0 ? 'Today' : i === 1 ? 'Tomorrow' : d.toLocaleDateString([], { weekday: 'short', day: 'numeric' }) };
+  });
+  const when = () => {
+    const d = new Date();
+    d.setDate(d.getDate() + dayOffset);
+    const [h, m] = at.split(':').map(Number);
+    d.setHours(h!, m!, 0, 0);
+    return d;
+  };
+  const submit = async () => {
+    setBusy(true);
+    setError('');
+    try {
+      const d = when();
+      if (d.getTime() < Date.now()) throw new Error('That time has already passed today. Pick a later time or day.');
+      await api('/posts', { body: { clipId: clip.id, platform, caption: text, scheduledAt: d.toISOString() } });
+      onDone(`Scheduled for ${PLATFORMS[platform].label}, ${d.toLocaleString([], { weekday: 'short', day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}`);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Could not schedule');
+    } finally {
+      setBusy(false);
+    }
+  };
+  return (
+    <Card glow style={{ gap: space.md }}>
+      <Text variant="h2">Schedule this clip</Text>
+      <Chips size="sm" value={platform} onChange={setPlatform} options={PLATFORM_KEYS.map((k) => ({ value: k, label: PLATFORMS[k].label, icon: PLATFORMS[k].icon }))} />
+      <Chips size="sm" value={dayOffset} onChange={setDayOffset} options={days} />
+      <Chips size="sm" value={at} onChange={setAt} options={TIMES.map((t) => ({ value: t, label: t }))} />
+      <Input label="Caption" value={text} onChangeText={setText} multiline placeholder="What should the post say?" />
+      {error ? <Notice tone="danger">{error}</Notice> : null}
+      <View style={{ flexDirection: 'row', gap: space.sm, flexWrap: 'wrap' }}>
+        <Button label="Add to calendar" icon="calendar" loading={busy} onPress={() => void submit()} />
+        <Button label="Open calendar" variant="ghost" onPress={() => router.navigate('/calendar')} />
+      </View>
+    </Card>
+  );
+}
+
 /** One clip, big: player, AI headline / caption / hashtags, virality, download, share, prev / next. */
 export default function ClipPage() {
   const { job: jobId, clip: clipId } = useLocalSearchParams<{ job: string; clip: string }>();
@@ -31,6 +86,7 @@ export default function ClipPage() {
   const [error, setError] = useState('');
   const [note, setNote] = useState('');
   const [busy, setBusy] = useState('');
+  const [scheduling, setScheduling] = useState(false);
 
   useEffect(() => {
     api<{ job: Job }>(`/jobs/${jobId}`).then(
@@ -146,10 +202,22 @@ export default function ClipPage() {
           {clock(clip.startSec)} → {clock(clip.endSec)} of “{job.title}”
         </Text>
       </Card>
+      {scheduling ? (
+        <ScheduleForm
+          key={clip.id}
+          clip={clip}
+          caption={[clip.description, clip.hashtags].filter(Boolean).join(' ')}
+          onDone={(m) => {
+            setScheduling(false);
+            setNote(m);
+          }}
+        />
+      ) : null}
       {note ? <Notice tone="success">{note}</Notice> : null}
       {error ? <Notice tone="danger">{error}</Notice> : null}
       <View style={styles.actions}>
         <Button label="Download" icon="arrow-down" size="lg" loading={busy === 'dl'} onPress={() => void run('dl', () => saveFile(clip.downloadUrl, fileName))} />
+        <Button label="Schedule" variant="ai" icon="calendar-outline" size="lg" onPress={() => setScheduling(!scheduling)} />
         <Button label={Platform.OS === 'web' ? 'Share link' : 'Share'} variant="secondary" icon="share-outline" size="lg" onPress={() => void run('share', async () => (await shareLink(clip.videoUrl, clip.title || fileName)) === 'copied' && setNote('Link copied'))} />
         <IconButton
           icon="trash-outline"

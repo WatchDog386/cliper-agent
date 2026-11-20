@@ -3,7 +3,7 @@ import path from 'node:path';
 import { JobStatus, Prisma } from '@prisma/client';
 import { env } from '../config/env';
 import { prisma } from '../lib/prisma';
-import { jobDir, toStored } from '../lib/storage';
+import { jobDir, resolveStored, toStored } from '../lib/storage';
 import { ToolError } from '../lib/tools';
 import { loudnessPerSecond, probe, renderClip, thumbnail } from './media';
 import { optionsSchema } from './options';
@@ -158,6 +158,7 @@ export async function processJob(id: string, signal: AbortSignal) {
     if (!segments.length) throw new Error('Nothing to clip: check the start / end times and ranges against the video length');
 
     // ── 4. Render ──
+    const logo = await brandLogo(job.userId, o.brandKitId);
     const base = fetchShare + analyseShare;
     const each = (99 - base) / segments.length;
     for (let i = 0; i < segments.length; i++) {
@@ -166,7 +167,7 @@ export async function processJob(id: string, signal: AbortSignal) {
       const label = `Rendering clip ${i + 1} of ${segments.length}`;
       await report(JobStatus.RENDERING, base + i * each, label, true);
       const out = path.join(dir, `clip-${n}.mp4`);
-      const r = await renderClip(sourceFile, info, seg, o, out, (f) => soft(JobStatus.RENDERING, base + (i + f) * each, `${label} · ${Math.round(f * 100)}%`), signal);
+      const r = await renderClip(sourceFile, info, seg, o, out, (f) => soft(JobStatus.RENDERING, base + (i + f) * each, `${label} · ${Math.round(f * 100)}%`), signal, logo);
       const thumb = path.join(dir, `clip-${n}.jpg`);
       const hasThumb = await thumbnail(out, r.duration, thumb, signal).then(
         () => true,
@@ -204,6 +205,17 @@ export async function processJob(id: string, signal: AbortSignal) {
       .updateMany({ where: { id, status: { in: ACTIVE } }, data: { status: JobStatus.FAILED, error: message, stage: 'Failed', finishedAt: new Date() } })
       .catch(() => undefined);
   }
+}
+
+/** The logo of the job's brand kit, if it has one that is still there (a deleted kit is skipped). */
+async function brandLogo(userId: string, kitId?: string) {
+  if (!kitId) return undefined;
+  const kit = await prisma.brandKit.findFirst({ where: { id: kitId, userId } });
+  if (!kit?.logo) return undefined;
+  const file = resolveStored(kit.logo);
+  if (!(await fs.promises.stat(file).catch(() => null))) return undefined;
+  const position = (['top-left', 'top-right', 'bottom-left', 'bottom-right'] as const).find((p) => p === kit.logoPosition) ?? 'top-right';
+  return { file, position, size: kit.logoSize, opacity: kit.logoOpacity };
 }
 
 /**

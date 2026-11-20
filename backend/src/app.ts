@@ -19,6 +19,8 @@ import { queueStats } from './clipper/queue';
 import { opusEnabled } from './clipper/opus';
 import { aiRouter } from './modules/ai/ai.routes';
 import { adminRouter } from './modules/admin/admin.routes';
+import { brandRouter } from './modules/brand/brand.routes';
+import { postsRouter } from './modules/posts/posts.routes';
 import { requireRole } from './middleware/auth';
 
 export function createApp() {
@@ -101,6 +103,8 @@ export function createApp() {
   api.use('/source', requireAuth, sourceRouter);
   api.use('/discover', requireAuth, discoverRouter);
   api.use('/ai', requireAuth, aiRouter);
+  api.use('/brand-kits', requireAuth, brandRouter);
+  api.use('/posts', requireAuth, postsRouter);
   api.use('/admin', requireAuth, requireRole(['ADMIN']), adminRouter);
   app.use('/api/v1', api);
 

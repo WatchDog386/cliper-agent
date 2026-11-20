@@ -11,7 +11,7 @@ import { Segmented } from '../../src/components/Segmented';
 import { Text } from '../../src/components/Text';
 import { AspectPicker, Badge, Card, Chips, Notice, OptionCards, ProgressBar, Screen, SectionTitle, Skeleton, ToggleRow } from '../../src/components/ui';
 import { api, uploadVideo } from '../../src/api/client';
-import type { AiStatus, AppConfig, ClipOptions, Job, Mode, SourceMeta } from '../../src/api/types';
+import type { AiStatus, AppConfig, BrandKit, ClipOptions, Job, Mode, SourceMeta } from '../../src/api/types';
 import { useDraft } from '../../src/store/draft';
 import { colors, fonts, gradients, radius, space } from '../../src/theme';
 import { useDesktop } from '../../src/theme/desktop';
@@ -54,10 +54,25 @@ export default function Create() {
   const [ranges, setRanges] = useState<{ start: string; end: string }[]>([{ start: '', end: '' }]);
   const [config, setConfig] = useState<AppConfig | null>(null);
   const [ai, setAi] = useState<AiStatus | null>(null);
+  const [kits, setKits] = useState<BrandKit[]>([]);
 
   useEffect(() => {
     api<AppConfig>('/config').then(setConfig, () => undefined);
     api<AiStatus>('/ai/status').then(setAi, () => undefined);
+    api<{ kits: BrandKit[] }>('/brand-kits').then(
+      (r) => {
+        setKits(r.kits);
+        const opts = useDraft.getState().options;
+        // The default kit is pre-selected; a kit that was deleted is dropped
+        if (opts.brandKitId && !r.kits.some((k) => k.id === opts.brandKitId)) set({ brandKitId: undefined });
+        else if (opts.brandKitId === undefined) {
+          const def = r.kits.find((k) => k.isDefault);
+          if (def) set({ brandKitId: def.id });
+        }
+      },
+      () => undefined,
+    );
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // Links from Home / Trending and ?mode=… / ?source=… arrive here
@@ -142,6 +157,8 @@ export default function Create() {
       endAt: o.mode === 'custom' ? undefined : endAt,
       ranges: o.mode === 'custom' ? parsedRanges : undefined,
       aiPrompt: o.mode === 'ai' ? o.aiPrompt?.trim() || undefined : undefined,
+      // '' means "no branding" (chosen on purpose); the server only needs a real id
+      brandKitId: o.mode !== 'ai' && o.brandKitId ? o.brandKitId : undefined,
     }),
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [o, trimStart, trimEnd, ranges],
@@ -468,6 +485,15 @@ export default function Create() {
         onChange={(quality) => set({ quality })}
         options={(['480', '720', '1080'] as const).map((q) => ({ value: q, label: `${q}p · ${RES[o.aspect]![q]}` }))}
       />
+      <SectionTitle hint="Stamps the kit's logo on every clip" right={<Button label="Manage" size="sm" variant="ghost" trailingIcon="arrow-forward" onPress={() => router.navigate('/brand-kits')} />}>
+        Brand kit
+      </SectionTitle>
+      <Chips
+        size="sm"
+        value={o.brandKitId ?? ''}
+        onChange={(id) => set({ brandKitId: id || '' })}
+        options={[{ value: '', label: 'No branding', icon: 'close-circle-outline' as const }, ...kits.map((k) => ({ value: k.id, label: k.name + (k.logoUrl ? '' : ' (no logo)'), icon: 'briefcase-outline' as const }))]}
+      />
       <SectionTitle>Extras</SectionTitle>
       <ToggleRow icon="contrast-outline" label="Fade in and out" hint="Smooth start and end on every clip" value={o.fade} onChange={(fade) => set({ fade })} />
       <ToggleRow icon="volume-mute-outline" label="Remove sound" hint="Add your own music when posting" value={o.mute} onChange={(mute) => set({ mute })} />
@@ -499,6 +525,7 @@ export default function Create() {
         ['flash-outline', o.mode === 'highlights' ? 'Best moments' : o.mode === 'split' ? 'Split evenly' : 'Exact ranges'],
         ...(o.speed !== 1 ? [['speedometer-outline', `${o.speed}× speed`]] : []),
         ...(o.mute ? [['volume-mute-outline', 'No sound']] : []),
+        ...(o.brandKitId && kits.some((k) => k.id === o.brandKitId) ? [['briefcase-outline', `Logo: ${kits.find((k) => k.id === o.brandKitId)!.name}`]] : []),
       ];
 
   const summary = (

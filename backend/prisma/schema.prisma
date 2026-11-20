@@ -32,17 +32,60 @@ enum SourceKind {
 }
 
 model User {
-  id             String    @id @default(cuid())
-  email          String    @unique
+  id             String          @id @default(cuid())
+  email          String          @unique
   name           String
   passwordHash   String
-  role           Role      @default(USER)
-  active         Boolean   @default(true)
+  role           Role            @default(USER)
+  active         Boolean         @default(true)
   /// Raised to sign a person out of every device.
-  sessionVersion Int       @default(0)
-  createdAt      DateTime  @default(now())
-  updatedAt      DateTime  @updatedAt
+  sessionVersion Int             @default(0)
+  createdAt      DateTime        @default(now())
+  updatedAt      DateTime        @updatedAt
   jobs           ClipJob[]
+  brandKits      BrandKit[]
+  posts          ScheduledPost[]
+}
+
+/// A person's branding: colours and a logo stamped on every clip rendered with it.
+model BrandKit {
+  id             String   @id @default(cuid())
+  userId         String
+  user           User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  name           String
+  primaryColor   String   @default("#C8FF2E")
+  secondaryColor String   @default("#9B6BFF")
+  /// Logo file, relative to STORAGE_DIR (PNG / JPEG / WebP).
+  logo           String?
+  /// top-left · top-right · bottom-left · bottom-right
+  logoPosition   String   @default("top-right")
+  /// Logo width as a percentage of the frame width.
+  logoSize       Int      @default(14)
+  logoOpacity    Float    @default(0.9)
+  isDefault      Boolean  @default(false)
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  @@index([userId])
+}
+
+/// A clip planned for a social platform on a date (the content calendar).
+model ScheduledPost {
+  id          String   @id @default(cuid())
+  userId      String
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  clipId      String
+  clip        Clip     @relation(fields: [clipId], references: [id], onDelete: Cascade)
+  /// tiktok · instagram · youtube · x · facebook · linkedin
+  platform    String
+  caption     String   @default("")
+  scheduledAt DateTime
+  /// PLANNED · POSTED · SKIPPED
+  status      String   @default("PLANNED")
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([userId, scheduledAt])
 }
 
 /// One request to cut a source video into clips.
@@ -83,27 +126,28 @@ model ClipJob {
 
 /// One rendered segment.
 model Clip {
-  id        String   @id @default(cuid())
-  jobId     String
-  job       ClipJob  @relation(fields: [jobId], references: [id], onDelete: Cascade)
+  id          String          @id @default(cuid())
+  jobId       String
+  job         ClipJob         @relation(fields: [jobId], references: [id], onDelete: Cascade)
   /// 1-based position in the job.
-  index     Int
-  startSec  Float
-  endSec    Float
-  duration  Float
-  width     Int
-  height    Int
-  sizeBytes Int
+  index       Int
+  startSec    Float
+  endSec      Float
+  duration    Float
+  width       Int
+  height      Int
+  sizeBytes   Int
   /// Highlight score 0–100 (highlights mode only).
-  score     Float?
+  score       Float?
   /// AI clips (OpusClip): a headline, a post caption and hashtags.
   title       String?
   description String?
   hashtags    String?
   /// Paths relative to STORAGE_DIR.
-  file      String
-  thumb     String?
-  createdAt DateTime @default(now())
+  file        String
+  thumb       String?
+  createdAt   DateTime        @default(now())
+  posts       ScheduledPost[]
 
   @@unique([jobId, index])
 }

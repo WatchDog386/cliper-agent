@@ -88,6 +88,23 @@ export default function Settings() {
         ) : null}
       </View>
 
+      <Card>
+        <SectionTitle>More</SectionTitle>
+        <View style={styles.more}>
+          {(
+            [
+              ['color-palette-outline', 'Brand templates', '/brands'],
+              ['briefcase-outline', 'Brand kits', '/brand-kits'],
+              ['calendar-outline', 'Calendar', '/calendar'],
+              ['school-outline', 'Learning center', '/learn'],
+              ['help-buoy-outline', 'Help center', '/help'],
+            ] as const
+          ).map(([icon, label, href]) => (
+            <Button key={href} label={label} icon={icon} variant="secondary" size="sm" onPress={() => router.navigate(href)} />
+          ))}
+        </View>
+      </Card>
+
       <View style={styles.cols}>
         <Card style={col}>
           <SectionTitle>Profile</SectionTitle>
@@ -205,6 +222,7 @@ export default function Settings() {
 
 const styles = StyleSheet.create({
   cols: { flexDirection: 'row', flexWrap: 'wrap', gap: space.xl },
+  more: { flexDirection: 'row', flexWrap: 'wrap', gap: space.sm },
   aiCard: { borderRadius: 22, padding: space.xl, gap: space.md, overflow: 'hidden', borderWidth: 1, borderColor: 'rgba(155,107,255,0.35)' },
   aiIcon: { width: 44, height: 44, borderRadius: 13, alignItems: 'center', justifyContent: 'center' },
   toolRow: { flexDirection: 'row', alignItems: 'center', gap: space.sm },

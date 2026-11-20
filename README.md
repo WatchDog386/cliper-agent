@@ -34,6 +34,10 @@ they'll be watched:
 - **Accounts**: email + password. The first account is the admin. Sign-up can be closed. Each person only sees their own jobs.
 - **Housekeeping**: finished jobs and their files are deleted after `KEEP_JOBS_DAYS` (default 7).
 - **Studio UI**: a dark "neon studio" design (lime actions, violet AI glow) with a Home dashboard (one-box link → clips), a two-column Create studio with a live summary, Projects with search, a per-clip page (player, AI caption to copy, virality ring, previous / next), an Admin page (team, storage, failures) and a 404 page.
+- **Brand kits**: upload your logo once, pick the corner, size and opacity (with a live 9:16 preview) and colours; every clip made with the kit gets the logo burned in. One kit can be the default.
+- **Brand templates**: your OpusClip caption/layout templates, with previews; pick the one AI clips use.
+- **Content calendar**: schedule clips per platform (TikTok, Instagram, YouTube, X, Facebook, LinkedIn), day and time from the clip page; month and upcoming views; mark posts as posted or skipped. It plans and reminds; it does not post for you.
+- **Learning center & Help center**: practical guides (hooks, virality score, formats, brand kits, planning a week of posts, rights) and a searchable FAQ with troubleshooting.
 - **Demo build**: `EXPO_PUBLIC_DEMO=1 npx expo export -p web` builds the whole app with sample projects in the browser and no server, for previews.
 - **Runs everywhere**: one Expo codebase gives a responsive web app (a side rail on desktop, a floating tab bar on phones), an installable PWA, and Android/iOS builds.
 

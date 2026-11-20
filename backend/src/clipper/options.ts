@@ -60,6 +60,8 @@ export const optionsSchema = z
     aiTemplateId: z.string().trim().max(120).optional(),
     aiHook: z.boolean().default(false),
     aiLanguage: z.string().trim().max(8).optional(),
+    /** A brand kit whose logo is stamped on every clip (local modes). */
+    brandKitId: z.string().trim().max(40).optional(),
   })
   .refine((o) => o.endAt === undefined || o.startAt === undefined || o.endAt > o.startAt, { message: 'End must be after start', path: ['endAt'] })
   .refine((o) => o.mode !== 'custom' || (o.ranges?.length ?? 0) > 0, { message: 'Add at least one time range', path: ['ranges'] });
