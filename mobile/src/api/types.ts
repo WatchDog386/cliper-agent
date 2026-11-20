@@ -139,7 +139,13 @@ export interface AiStatus {
   enabled: boolean;
   ok: boolean;
   provider: string;
-  templates: { id: string; name: string; isDefault: boolean }[];
+  templates: {
+    id: string;
+    name: string;
+    isDefault: boolean;
+    /** The template's caption look, read from OpusClip. */
+    style?: { captions: boolean; fontFamily: string | null; textColor: string; highlightColor: string | null; uppercase: boolean; emoji: boolean; stroke: boolean; animation: string | null; layout: string | null };
+  }[];
   message?: string;
 }
 

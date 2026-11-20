@@ -9,7 +9,7 @@ import { Text } from '../../../src/components/Text';
 import { Badge, Card, Chips, Notice, Screen, ScoreRing, Skeleton } from '../../../src/components/ui';
 import { Input } from '../../../src/components/Input';
 import { PLATFORM_KEYS, PLATFORMS } from '../../../src/utils/platforms';
-import { api, DEMO, mediaUrl } from '../../../src/api/client';
+import { api, mediaUrl } from '../../../src/api/client';
 import type { Clip, Job, Platform as Social } from '../../../src/api/types';
 import { colors, fonts, radius, space } from '../../../src/theme';
 import { useDesktop } from '../../../src/theme/desktop';
@@ -138,13 +138,13 @@ export default function ClipPage() {
 
   const player = (
     <View style={[styles.stage, tall ? { aspectRatio: clip.width / clip.height, maxHeight: desktop ? 720 : 560 } : { aspectRatio: clip.width / clip.height }]}>
-      {DEMO || !clip.videoUrl ? (
+      {!clip.videoUrl ? (
         <>
           {clip.thumbUrl ? <Image source={{ uri: mediaUrl(clip.thumbUrl) }} style={StyleSheet.absoluteFill} resizeMode="cover" /> : null}
-          <View style={styles.demoNote}>
+          <View style={styles.videoNote}>
             <Ionicons name="play-circle-outline" size={18} color="#FFFFFF" />
             <Text variant="label" color="#FFFFFF">
-              Preview only in the demo
+              Video not available
             </Text>
           </View>
         </>
@@ -261,7 +261,7 @@ const styles = StyleSheet.create({
   topBar: { flexDirection: 'row', alignItems: 'center', gap: space.md },
   cols: { flexDirection: 'row', gap: space.xxl, alignItems: 'flex-start' },
   stage: { width: '100%', borderRadius: radius.xl, overflow: 'hidden', backgroundColor: '#000', borderWidth: 1, borderColor: colors.border },
-  demoNote: { position: 'absolute', bottom: 14, alignSelf: 'center', flexDirection: 'row', gap: 6, alignItems: 'center', backgroundColor: 'rgba(0,0,0,0.6)', paddingHorizontal: 12, paddingVertical: 6, borderRadius: 999 },
+  videoNote: { position: 'absolute', bottom: 14, alignSelf: 'center', flexDirection: 'row', gap: 6, alignItems: 'center', backgroundColor: 'rgba(0,0,0,0.6)', paddingHorizontal: 12, paddingVertical: 6, borderRadius: 999 },
   scoreCard: { flexDirection: 'row', alignItems: 'center', gap: space.lg, padding: space.lg },
   actions: { flexDirection: 'row', gap: space.sm, flexWrap: 'wrap', alignItems: 'center' },
 });

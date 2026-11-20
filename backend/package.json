@@ -2,7 +2,7 @@
   "name": "cliper-agent-api",
   "version": "1.0.0",
   "private": true,
-  "description": "Cliper Agent — paste a video link, get ready-to-post clips for phone (9:16) or desktop (16:9)",
+  "description": "Cliper Agent \u2014 paste a video link, get ready-to-post clips for phone (9:16) or desktop (16:9)",
   "main": "dist/index.js",
   "scripts": {
     "dev": "tsx watch src/index.ts",
@@ -14,7 +14,9 @@
     "db:deploy": "prisma migrate deploy",
     "db:studio": "prisma studio",
     "test": "vitest run",
-    "test:watch": "vitest"
+    "test:watch": "vitest",
+    "doctor": "tsx scripts/doctor.ts",
+    "setup": "npm run tools && prisma migrate deploy && npm run doctor"
   },
   "dependencies": {
     "@prisma/client": "^5.22.0",

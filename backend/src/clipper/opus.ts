@@ -187,11 +187,29 @@ export async function listClips(projectId: string, signal?: AbortSignal): Promis
 export async function listTemplates(signal?: AbortSignal) {
   const r = await call<unknown>('/api/brand-templates?q=mine', { signal });
   const list = (Array.isArray(r) ? r : ((r as Json)?.data as unknown[]) ?? []) as Json[];
-  return list.map((t) => ({
-    id: pickString(t, ['templateId', 'id']) ?? '',
-    name: pickString(t, ['name']) ?? 'Template',
-    isDefault: t.isDefault === true,
-  }));
+  return list.map((t) => {
+    // The template's real caption look, for the app's preview
+    const p = (t.preferences ?? {}) as Json;
+    const font = (p.font ?? {}) as Json;
+    const hl = (p.highlightColor ?? {}) as Json;
+    const anim = (p.captionAnimation ?? {}) as Json;
+    return {
+      id: pickString(t, ['templateId', 'id']) ?? '',
+      name: pickString(t, ['name']) ?? 'Template',
+      isDefault: t.isDefault === true,
+      style: {
+        captions: p.enableCaption !== false,
+        fontFamily: pickString(font, ['family']) ?? null,
+        textColor: pickString(font, ['color']) ?? '#ffffff',
+        highlightColor: pickString(hl, ['primary']) ?? pickString(anim, ['highlightColor']) ?? null,
+        uppercase: p.enableUppercase === true,
+        emoji: p.enableEmoji === true,
+        stroke: ((font.stroke ?? {}) as Json).enabled === true,
+        animation: pickString(anim, ['name']) ?? null,
+        layout: pickString(p, ['layoutAspectRatio']) ?? null,
+      },
+    };
+  });
 }
 
 /** Download one rendered clip from OpusClip's CDN. */

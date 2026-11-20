@@ -105,11 +105,13 @@ export default function Home() {
         <Glow color="#C8FF2E" size={360} opacity={0.12} style={{ top: -140, right: 120 }} />
         <View style={[styles.heroInner, desktop && { maxWidth: 820 }]}>
           <View style={styles.kicker}>
-            <Badge tone="ai" icon="sparkles">
-              NEW
-            </Badge>
+            {ai ? (
+              <Badge tone="ai" icon="sparkles">
+                AI
+              </Badge>
+            ) : null}
             <Text variant="label" color="rgba(255,255,255,0.82)">
-              Hey {hello} · AI clipping powered by OpusClip
+              Hey {hello} · {ai ? 'AI clipping powered by OpusClip' : 'Auto captions, jump cuts and zoom on every clip'}
             </Text>
           </View>
           <Text variant="hero" color="#FFFFFF" align="center" style={!desktop && { fontSize: 36, lineHeight: 40, letterSpacing: -1.2 }}>
@@ -195,7 +197,6 @@ export default function Home() {
             <View style={{ gap: 4, flex: 1 }}>
               <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
                 <Text variant="h2">{m.title}</Text>
-                {m.ai ? <Badge tone="lime">Popular</Badge> : null}
               </View>
               <Text variant="bodySm" color={colors.textMuted}>
                 {m.hint}

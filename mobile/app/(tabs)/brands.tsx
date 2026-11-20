@@ -11,34 +11,57 @@ import type { AiStatus } from '../../src/api/types';
 import { useDraft } from '../../src/store/draft';
 import { colors, fonts, radius, space } from '../../src/theme';
 
-/** Caption looks used to draw each template's preview (the real style lives in OpusClip). */
-const LOOKS = [
-  { bg: ['#2B1055', '#7597DE'], word: '#04F827', box: false, upper: true },
-  { bg: ['#0F2027', '#2C5364'], word: '#FFFD03', box: true, upper: false },
-  { bg: ['#1A0B2E', '#FF4FA3'], word: '#FFFFFF', box: false, upper: true },
-  { bg: ['#141E30', '#243B55'], word: '#38E1FF', box: true, upper: true },
-] as const;
+type Tpl = AiStatus['templates'][number];
 
-function Preview({ i, name }: { i: number; name: string }) {
-  const l = LOOKS[i % LOOKS.length]!;
-  const words = ['THIS', 'CHANGED', 'EVERYTHING'];
+/** A 9:16 frame drawn from the template's real caption settings (colours, case, outline, layout). */
+function Preview({ t }: { t: Tpl }) {
+  const st = t.style;
+  const up = st?.uppercase ?? true;
+  const words = ['This', 'changed', 'everything'].map((w) => (up ? w.toUpperCase() : w));
+  const hl = st?.highlightColor ?? '#C8FF2E';
   return (
     <View style={styles.phone}>
-      <LinearGradient colors={l.bg} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={StyleSheet.absoluteFill} />
+      <LinearGradient colors={['#1A1A24', '#0B0B10']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={StyleSheet.absoluteFill} />
       <View style={styles.head} />
       <View style={styles.body} />
-      <View style={[styles.caption, l.box && styles.captionBox]}>
-        {words.map((w, j) => (
-          <Text key={w} variant="label" color={j === 1 ? l.word : '#FFFFFF'} style={{ fontFamily: fonts.extrabold, fontSize: 13, textShadowColor: 'rgba(0,0,0,0.8)', textShadowRadius: 4 }}>
-            {l.upper ? w : w.toLowerCase()}
-          </Text>
-        ))}
-      </View>
+      {st?.captions === false ? null : (
+        <View style={styles.caption}>
+          {words.map((w, j) => (
+            <Text
+              key={w}
+              variant="label"
+              color={j === 1 ? hl : (st?.textColor ?? '#FFFFFF')}
+              style={{ fontFamily: fonts.extrabold, fontSize: 13, textShadowColor: st?.stroke ? '#000' : 'transparent', textShadowRadius: st?.stroke ? 4 : 0 }}
+            >
+              {w}
+            </Text>
+          ))}
+        </View>
+      )}
       <View style={styles.tag}>
         <Text variant="label" color="#FFFFFF" style={{ fontFamily: fonts.semibold, fontSize: 10.5 }} numberOfLines={1}>
-          {name}
+          {[st?.fontFamily, st?.layout].filter(Boolean).join(' · ') || t.name}
         </Text>
       </View>
+    </View>
+  );
+}
+
+function StyleFacts({ t }: { t: Tpl }) {
+  const st = t.style;
+  if (!st) return null;
+  const facts = [
+    st.captions ? 'Captions' : 'No captions',
+    st.animation ? st.animation.replace(/[-_]/g, ' ').replace(/word level/i, 'word-level') : null,
+    st.uppercase ? 'Uppercase' : null,
+    st.emoji ? 'Emojis' : null,
+  ].filter(Boolean);
+  return (
+    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
+      {st.highlightColor ? <View style={{ width: 12, height: 12, borderRadius: 6, backgroundColor: st.highlightColor }} /> : null}
+      <Text variant="label" color={colors.textMuted} style={{ fontFamily: fonts.regular, flex: 1 }} numberOfLines={2}>
+        {facts.join(' · ')}
+      </Text>
     </View>
   );
 }
@@ -97,11 +120,12 @@ export default function Brands() {
                 {!chosen ? <Badge tone="lime" icon="checkmark">In use</Badge> : null}
               </View>
             </Pressable>
-            {ai.templates.map((t, i) => {
+            {ai.templates.map((t) => {
               const on = chosen === t.id;
               return (
                 <Pressable key={t.id} onPress={() => use(t.id)} style={(s) => [styles.card, on && styles.on, (s as { hovered?: boolean }).hovered && { borderColor: colors.borderStrong }]}>
-                  <Preview i={i} name={t.name} />
+                  <Preview t={t} />
+                  <StyleFacts t={t} />
                   <View style={styles.row}>
                     <Text variant="title" style={{ flex: 1 }} numberOfLines={1}>
                       {t.name}

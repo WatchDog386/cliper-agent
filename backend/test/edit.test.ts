@@ -69,7 +69,7 @@ describe('auto-edit planning', () => {
     expect(g.outDuration).toBe(17);
     expect(g.graph).toContain('concat=n=2:v=1:a=1[cv][ca]');
     expect(g.graph).toContain("eval=frame,crop=720:1280");
-    expect(g.graph).toContain("ass=filename='/tmp/a b.ass'");
+    expect(g.graph).toContain("ass=filename='/tmp/a b.ass':fontsdir=");
     expect(g.graph).toContain('color=c=0xC8FF2E');
     expect(g.graph).toContain('loudnorm=I=-14');
     expect(g.graph.endsWith('[a]')).toBe(true);

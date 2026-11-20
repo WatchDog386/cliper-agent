@@ -34,6 +34,7 @@ COPY --from=build /app/dist ./dist
 COPY package.json ./
 COPY prisma ./prisma
 COPY scripts/transcribe.py ./scripts/transcribe.py
+COPY assets ./assets
 RUN mkdir -p storage && chown -R node:node /app
 USER node
 EXPOSE 4000

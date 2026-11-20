@@ -10,7 +10,7 @@ import { Logo } from '../../src/components/Logo';
 import { colors, fonts, gradients, radius, shadow } from '../../src/theme';
 import { RAIL_WIDTH, useDesktop } from '../../src/theme/desktop';
 import { useAuth } from '../../src/store/auth';
-import { api, DEMO } from '../../src/api/client';
+import { api } from '../../src/api/client';
 import type { AppConfig } from '../../src/api/types';
 
 /** The part of React Navigation's tab-bar props this bar uses. */
@@ -100,13 +100,6 @@ function TabBar({ state, navigation, desktop }: BottomTabBarProps & { desktop: b
           <Text variant="h2" style={{ fontFamily: fonts.extrabold, letterSpacing: -0.4 }}>
             Cliper<Text variant="h2" color={colors.highlight} style={{ fontFamily: fonts.extrabold }}>.</Text>
           </Text>
-          {DEMO ? (
-            <View style={styles.demo}>
-              <Text variant="label" color={colors.onHighlight} style={{ fontFamily: fonts.bold, fontSize: 10 }}>
-                DEMO
-              </Text>
-            </View>
-          ) : null}
         </View>
         <Pressable onPress={() => router.navigate('/create')} style={(s) => [styles.newBtn, (s as { hovered?: boolean }).hovered && { backgroundColor: colors.highlightPressed }]}>
           <Ionicons name="add" size={18} color={colors.onHighlight} />
@@ -225,7 +218,6 @@ const styles = StyleSheet.create({
   fab: { height: 50, width: 50, borderRadius: 25, marginHorizontal: 4, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.highlight, ...shadow.glow },
   rail: { width: RAIL_WIDTH, backgroundColor: colors.surface, borderRightWidth: 1, borderRightColor: colors.border, paddingVertical: 22, paddingHorizontal: 14, gap: 2 },
   brandRow: { flexDirection: 'row', alignItems: 'center', gap: 10, paddingHorizontal: 8, marginBottom: 18 },
-  demo: { backgroundColor: colors.highlight, borderRadius: 5, paddingHorizontal: 5, paddingVertical: 1 },
   newBtn: { height: 42, borderRadius: radius.md, backgroundColor: colors.highlight, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, ...shadow.glow },
   railItem: { flexDirection: 'row', alignItems: 'center', gap: 12, height: 38, paddingHorizontal: 12, borderRadius: radius.md },
   railOn: { backgroundColor: colors.surfaceHigh },

@@ -1,4 +1,8 @@
+import path from 'node:path';
 import { frameSize, type ClipOptions } from './options';
+
+/** Caption fonts shipped with the API (assets/fonts), so captions look the same on any machine. */
+export const FONTS_DIR = path.resolve(__dirname, '../../assets/fonts');
 
 export interface SourceInfo {
   width: number;
@@ -131,7 +135,7 @@ export function buildFilterGraph(
   }
 
   // ── Captions and hook title ──
-  if (edit.ass) step(`ass=filename=${filterPath(edit.ass)}`, 'cap');
+  if (edit.ass) step(`ass=filename=${filterPath(edit.ass)}:fontsdir=${filterPath(FONTS_DIR)}`, 'cap');
 
   // ── Progress bar: a strip of colour sliding in from the left ──
   if (edit.bar) {

@@ -8,19 +8,19 @@ import { Input } from '../src/components/Input';
 import { Text } from '../src/components/Text';
 import { Segmented } from '../src/components/Segmented';
 import { Logo } from '../src/components/Logo';
-import { Badge, Glow, Notice, ScoreRing } from '../src/components/ui';
-import { api, DEMO } from '../src/api/client';
+import { Badge, Glow, Notice } from '../src/components/ui';
+import { api } from '../src/api/client';
 import type { AppConfig, User } from '../src/api/types';
 import { useAuth } from '../src/store/auth';
 import { colors, fonts, gradients, radius, space } from '../src/theme';
 import { useDesktop } from '../src/theme/desktop';
 
-/** Three phone-shaped "clips" fanned out: the product in one picture. */
+/** Three phone-shaped frames fanned out: an illustration of what the app makes (no data). */
 function ClipFan() {
-  const cards: { colors: [string, string]; rot: string; x: number; y: number; score: number; cap: string; z: number }[] = [
-    { colors: ['#2B1055', '#7597DE'], rot: '-9deg', x: -150, y: 30, score: 87, cap: 'NOBODY TELLS YOU', z: 1 },
-    { colors: ['#1A0B2E', '#FF4FA3'], rot: '0deg', x: 0, y: 0, score: 96, cap: 'THIS CHANGED EVERYTHING', z: 3 },
-    { colors: ['#0F2027', '#2C5364'], rot: '9deg', x: 150, y: 30, score: 79, cap: 'WAIT FOR IT', z: 2 },
+  const cards: { colors: [string, string]; rot: string; x: number; y: number; cap: string; z: number }[] = [
+    { colors: ['#2B1055', '#7597DE'], rot: '-9deg', x: -150, y: 30, cap: '9:16', z: 1 },
+    { colors: ['#1A0B2E', '#FF4FA3'], rot: '0deg', x: 0, y: 0, cap: 'CAPTIONS', z: 3 },
+    { colors: ['#0F2027', '#2C5364'], rot: '9deg', x: 150, y: 30, cap: 'JUMP CUTS', z: 2 },
   ];
   return (
     <View style={styles.fan}>
@@ -34,9 +34,6 @@ function ClipFan() {
               {c.cap}
             </Text>
           </View>
-          <View style={{ position: 'absolute', top: 10, right: 10 }}>
-            <ScoreRing score={c.score} size={40} />
-          </View>
         </View>
       ))}
     </View>
@@ -47,8 +44,8 @@ export default function Login() {
   const desktop = useDesktop();
   const [mode, setMode] = useState<'login' | 'register'>('login');
   const [name, setName] = useState('');
-  const [email, setEmail] = useState(DEMO ? 'demo@cliper.app' : '');
-  const [password, setPassword] = useState(DEMO ? 'demo1234' : '');
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
   const [config, setConfig] = useState<AppConfig | null>(null);
@@ -136,7 +133,6 @@ export default function Login() {
             setError('');
           }}
         />
-        {DEMO ? <Notice tone="info">Demo: any email and password work. Nothing is sent anywhere.</Notice> : null}
         {mode === 'register' && config && !config.allowSignup ? <Notice tone="warning">Sign-up is closed on this server. Ask the admin for an account.</Notice> : null}
         {mode === 'register' ? <Input label="Name" icon="person-outline" value={name} onChangeText={setName} placeholder="Your name" autoComplete="name" /> : null}
         <Input label="Email" icon="mail-outline" value={email} onChangeText={setEmail} placeholder="you@example.com" autoCapitalize="none" keyboardType="email-address" autoComplete="email" />

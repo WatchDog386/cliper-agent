@@ -8,7 +8,7 @@ import { Input } from '../../src/components/Input';
 import { Text } from '../../src/components/Text';
 import { Badge, Card, Notice, Screen, SectionTitle } from '../../src/components/ui';
 import { Segmented } from '../../src/components/Segmented';
-import { api, API_URL, DEMO } from '../../src/api/client';
+import { api, API_URL } from '../../src/api/client';
 import type { AiStatus, User } from '../../src/api/types';
 import { useAuth } from '../../src/store/auth';
 import { DEFAULT_OPTIONS, useDraft } from '../../src/store/draft';
@@ -176,7 +176,7 @@ export default function Settings() {
         </Card>
 
         <Card style={col}>
-          <SectionTitle hint={DEMO ? 'Demo mode: no server' : API_URL}>Server</SectionTitle>
+          <SectionTitle hint={API_URL}>Server</SectionTitle>
           {system ? (
             <View style={{ gap: 10 }}>
               {Object.entries(system.tools).map(([tool, t]) => (

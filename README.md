@@ -33,13 +33,13 @@ they'll be watched:
 - **Trending tab**: YouTube's real *most popular* chart by category when a YouTube API key is set, otherwise search-based discovery. **Clip this** sends a video straight to the clipper.
 - **Accounts**: email + password. The first account is the admin. Sign-up can be closed. Each person only sees their own jobs.
 - **Housekeeping**: finished jobs and their files are deleted after `KEEP_JOBS_DAYS` (default 7).
+- **Doctor**: `npm run doctor` (backend) checks the database, schema, storage, ffmpeg/libass, yt-dlp, speech-to-text and keys, and says how to fix what is missing.
 - **Studio UI**: a dark "neon studio" design (lime actions, violet AI glow) with a Home dashboard (one-box link → clips), a two-column Create studio with a live summary, Projects with search, a per-clip page (player, AI caption to copy, virality ring, previous / next), an Admin page (team, storage, failures) and a 404 page.
 - **Auto edit** (local modes, free, on your server): the edits an editor makes on every short. **Animated captions** word by word with the spoken word highlighted (karaoke, bold boxes or clean), a **hook title**, **smart cuts** that snap every clip to whole sentences, **silence removal** (jump cuts), **punch-in zoom**, **audio clean-up** levelled to −14 LUFS and a **progress bar**. Presets: Viral, Clean, Off. Captions and smart cuts use speech-to-text (faster-whisper on the CPU, bundled in the Docker image); everything else is pure ffmpeg.
 - **Brand kits**: upload your logo once, pick the corner, size and opacity (with a live 9:16 preview) and colours; every clip made with the kit gets the logo burned in. One kit can be the default.
 - **Brand templates**: your OpusClip caption/layout templates, with previews; pick the one AI clips use.
 - **Content calendar**: schedule clips per platform (TikTok, Instagram, YouTube, X, Facebook, LinkedIn), day and time from the clip page; month and upcoming views; mark posts as posted or skipped. It plans and reminds; it does not post for you.
 - **Learning center & Help center**: practical guides (hooks, virality score, formats, brand kits, planning a week of posts, rights) and a searchable FAQ with troubleshooting.
-- **Demo build**: `EXPO_PUBLIC_DEMO=1 npx expo export -p web` builds the whole app with sample projects in the browser and no server, for previews.
 - **Runs everywhere**: one Expo codebase gives a responsive web app (a side rail on desktop, a floating tab bar on phones), an installable PWA, and Android/iOS builds.
 
 ## How it works
@@ -84,6 +84,18 @@ if the server is just for your team.
 - **Your own database server**: set `DATABASE_URL=postgresql://…` in `deploy/.env`. The bundled `db` service is then unused.
 - **HTTPS**: point a DNS record at the server and set `SITE_ADDRESS=clips.example.com`. Caddy gets the certificate automatically.
 - The API image contains **ffmpeg** and **yt-dlp**. Sites change often, so rebuild now and then (`bash deploy/deploy.sh`) to get a fresh yt-dlp.
+
+## Run it on your laptop (Supabase or local Postgres)
+
+Step by step, including Supabase connection strings and auto captions: **[docs/LOCAL.md](docs/LOCAL.md)**.
+Short version:
+
+```bash
+cd backend && cp .env.example .env     # set DATABASE_URL (Supabase Session pooler), JWT_SECRET, keys
+npm install && npm run setup           # yt-dlp, tables, then a health check (npm run doctor)
+npm run dev
+cd ../mobile && npm install && npx expo start --web
+```
 
 ## Local development
 
