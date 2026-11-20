@@ -1,93 +1,101 @@
 /**
- * Cliper Agent desktop theme - Optimas dashboard theme
+ * Cliper Agent desktop — design tokens.
+ *
+ * Mirrors github.com/WatchDog386/Business-SME (Business SME):
+ * Safaricom green accent, ink scale, navy sidebar and Inter on desktop.
+ * The UI uses Tailwind classes backed by the CSS variables in index.css;
+ * these values are kept for inline styles and one-off calculations.
  */
-export const colors = {
-  bg: '#FFFFFF',
-  surface: '#FFFFFF',
-  surfaceAlt: '#EEF2F0',
-  border: '#E5E7EB',
-  borderStrong: '#CBD5D0',
-  primary: '#1C1D1F',
-  primaryPressed: '#000000',
-  onPrimary: '#FFFFFF',
-  primarySoft: 'rgba(28,29,31,0.06)',
-  highlight: '#ECF23A',
-  onHighlight: '#1C1D1F',
-  glass: '#FFFFFF',
-  glassStrong: '#FFFFFF',
-  glassBorder: 'rgba(15,23,42,0.06)',
-  hatch: 'rgba(28,29,31,0.13)',
-  bgTop: '#F8FAFC',
-  bgBottom: '#F8FAFC',
-  brand: '#2DA043',
-  onBrand: '#FFFFFF',
-  brandSoft: '#EAF7ED',
-  lime: '#C6EA5A',
-  charcoal: '#1C1F1B',
-  navy: '#002170',
-  accent: '#3A8F91',
-  accentSoft: '#E8F3F3',
-  garnet: '#9B2B3D',
-  garnetSoft: '#F7E3E6',
-  text: '#17201C',
-  textMuted: '#5E6B65',
-  textDim: '#8A9690',
-  success: '#00A13A',
-  successSoft: '#D1FAE5',
-  warning: '#D97706',
-  warningSoft: '#FEF3C7',
-  danger: '#DC2626',
-  dangerSoft: '#FEE2E2',
-  info: '#0284C7',
-  infoSoft: '#E0F2FE',
-  hero: '#1F2022',
-  onHero: '#FFFFFF',
-  onHeroMuted: 'rgba(255,255,255,0.72)',
-  onHeroDim: 'rgba(255,255,255,0.5)',
-  heroInset: 'rgba(255,255,255,0.14)',
-  heroBorder: 'rgba(255,255,255,0.12)',
-  glowTop: '#D7E7FF',
-  glowMid: '#E8F1FF',
-  bar: '#FFFFFF',
-  barBorder: 'rgba(15,23,42,0.06)',
-  barIcon: '#5E6B65',
-  overlay: 'rgba(10,16,13,0.66)',
-  scrim: 'rgba(0,0,0,0.45)',
-  white: '#FFFFFF',
-  black: '#000000',
-};
 
-export const desk = {
-  nav: '#0E2135',
+export const colors = {
+  brand50: '#EAF7ED',
+  brand100: '#CDEDD4',
+  brand200: '#9FDCAB',
+  brand300: '#6BC97F',
+  brand400: '#45B65C',
+  brand500: '#34A94B',
+  brand600: '#2DA043',
+  brand700: '#248537',
+  brand800: '#1D6A2C',
+  brand900: '#155021',
+  brand950: '#0C3214',
+
+  ink50: '#F7F9F8',
+  ink100: '#EEF2F0',
+  ink200: '#E3E9E6',
+  ink300: '#CBD5D0',
+  ink400: '#AAB6B0',
+  ink500: '#8A9690',
+  ink600: '#5E6B65',
+  ink700: '#46514C',
+  ink800: '#2B3631',
+  ink900: '#17201C',
+  ink950: '#10251F',
+
+  /* Semantic — light theme */
+  page: '#f7f8fa',
+  surface: '#ffffff',
+  surface2: '#f7f9f8',
+  surface3: '#eef2f0',
+  field: '#eef2f0',
+  edge: '#e3e9e6',
+  edgeStrong: '#cbd5d0',
+  foreground: '#17201c',
+  foregroundMuted: '#5e6b65',
+  foregroundDim: '#8a9690',
+
+  accent: '#2DA043',
+  accentStrong: '#248537',
+  accentSoft: '#EAF7ED',
+  accentText: '#1D6A2C',
+  success: '#00B140',
+  warning: '#D97706',
+  danger: '#DC2626',
+  info: '#0284C7',
+
+  /* Desktop navy rail */
+  navBg: '#0E2135',
   navText: '#E2E8F0',
-  navTextOn: '#FFFFFF',
   navMuted: '#8A9AAE',
   navActive: '#4DA3FF',
-  navOn: 'rgba(77,163,255,0.16)',
-  navHover: 'rgba(255,255,255,0.06)',
-  navBorder: 'rgba(255,255,255,0.08)',
-  orgCard: 'rgba(255,255,255,0.08)',
-  page: '#F7F8FA',
-  bar: '#FFFFFF',
-  panel: '#FFFFFF',
-  mini: '#F3F4F6',
-  row: '#F1F3F5',
-  border: '#E5E7EB',
-  ink: '#17201C',
-  strong: '#111827',
-  muted: '#6B7280',
-  green: '#2DA043',
-  greenHover: '#248A38',
-  teal: '#2DA043',
-  tealSoft: '#EAF7ED',
-  red: '#DC2626',
-};
+} as const;
 
-export const gradients = {
-  hero: ['#2C2D30', '#17181A'] as const,
-  brand: ['#45B65C', '#2DA043'] as const,
-  lime: ['#F2F65A', '#E2EA2C'] as const,
-  accent: ['#3A8F91', '#2F7F81'] as const,
-  glowTop: ['#D7E7FF', '#E8F1FF', 'rgba(255,255,255,0)'] as const,
-  glowBottom: ['rgba(255,255,255,0)', '#E8F1FF', '#D7E7FF'] as const,
-};
+export const typography = {
+  fontSans:
+    "'Inter Variable', 'Inter', system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif",
+  fontDisplay:
+    "'Figtree Variable', 'Figtree', 'Inter Variable', system-ui, -apple-system, sans-serif",
+  base: '14px',
+  small: '13px',
+  large: '16px',
+  heading: {
+    xl: '28px',
+    lg: '24px',
+    md: '20px',
+    sm: '17px',
+    xs: '15px',
+  },
+} as const;
+
+export const radius = {
+  sm: '4px',
+  md: '6px',
+  lg: '8px',
+  xl: '12px',
+  full: '9999px',
+} as const;
+
+export const spacing = {
+  xs: '0.25rem',
+  sm: '0.5rem',
+  md: '0.75rem',
+  lg: '1rem',
+  xl: '1.5rem',
+  xxl: '2rem',
+} as const;
+
+export const shadow = {
+  soft: '0 1px 3px 0 rgb(20 40 30 / 0.04), 0 4px 12px -4px rgb(20 40 30 / 0.06)',
+  lift: '0 2px 6px -1px rgb(20 40 30 / 0.06), 0 12px 24px -8px rgb(20 40 30 / 0.12)',
+  brandGlow: '0 8px 20px -6px rgb(8 127 91 / 0.4), 0 2px 6px -2px rgb(8 127 91 / 0.3)',
+} as const;

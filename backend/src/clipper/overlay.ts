@@ -97,7 +97,7 @@ export function buildAss(p: OverlayInput): string | null {
   };
 
   const hook = p.hook ? assText(p.hook) : '';
-  if (hook) line(0, Math.min(4.5, p.duration), 'Hook', `{\\fad(150,250)}${hook}`);
+  if (hook) line(0, p.duration, 'Hook', hook);
   const credit = p.credit ? assText(p.credit).slice(0, 40) : '';
   if (credit) line(0, p.duration, 'Credit', `via ${credit}`);
 

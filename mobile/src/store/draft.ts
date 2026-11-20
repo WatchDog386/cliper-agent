@@ -13,6 +13,10 @@ export const DEFAULT_OPTIONS: ClipOptions = {
   fade: false,
   mute: false,
   speed: 1,
+  layoutTemplate: 'full',
+  removeSilence: false,
+  aiDetectContent: undefined,
+  safeZone: 'basic',
   // Ready to post out of the box: captions, a title, the creator's credit, even loudness
   captions: true,
   captionStyle: 'karaoke',
@@ -26,7 +30,7 @@ const KEY = 'cliper.defaults';
 function saved(): ClipOptions {
   try {
     const raw = typeof localStorage !== 'undefined' ? localStorage.getItem(KEY) : null;
-    if (raw) return { ...DEFAULT_OPTIONS, ...(JSON.parse(raw) as Partial<ClipOptions>), startAt: undefined, endAt: undefined, ranges: undefined, topic: undefined };
+    if (raw) return { ...DEFAULT_OPTIONS, ...(JSON.parse(raw) as Partial<ClipOptions>), startAt: undefined, endAt: undefined, ranges: undefined, topic: undefined, aiDetectContent: undefined };
   } catch {
     /* ignore */
   }

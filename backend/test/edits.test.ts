@@ -30,8 +30,8 @@ describe('captions', () => {
     const ass = buildAss({ width: 1080, height: 1920, duration: 10, words: say('no way he did that'), style: 'karaoke', hook: 'He {robbed} the bank', credit: 'Streamer\\One' })!;
     expect(ass).toContain('PlayResX: 1080');
     expect(ass).toContain('Style: Cap,Inter,84,');
-    // The hook: first seconds only, braces (ASS commands) stripped from the text
-    expect(ass).toMatch(/Dialogue: 0,0:00:00\.00,0:00:04\.50,Hook,,0,0,0,,\{\\fad\(150,250\)\}He robbed the bank/);
+    // The hook: stays for the whole clip, no fade
+    expect(ass).toMatch(/Dialogue: 0,0:00:00\.00,0:00:10\.00,Hook,,0,0,0,,He robbed the bank/);
     expect(ass).toMatch(/Dialogue: 0,0:00:00\.00,0:00:10\.00,Credit,,0,0,0,,via StreamerOne/);
     // One event per spoken word, upper case, that word in yellow
     const caps = ass.split('\n').filter((l) => l.includes(',Cap,'));

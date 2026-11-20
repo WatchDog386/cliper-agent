@@ -364,6 +364,37 @@ export default function Create() {
         />
       </Card>
 
+      {/* ── Layout templates ── */}
+      <Card>
+        <SectionTitle hint="One video fills the frame, or two views stacked / side-by-side">Layout template</SectionTitle>
+        <OptionCards
+          value={o.layoutTemplate}
+          onChange={(layoutTemplate) => set({ layoutTemplate })}
+          options={[
+            { value: 'full', label: 'Full frame', hint: 'One video fills the screen', icon: 'square-outline' },
+            { value: 'split-screen', label: 'Split screen', hint: 'Two views stacked (phone) or side-by-side (desktop)', icon: 'grid-outline' },
+          ]}
+        />
+        <ToggleRow icon="volume-slash-outline" label="Remove silence" hint="Cuts out pauses and filler between words" value={o.removeSilence} onChange={(removeSilence) => set({ removeSilence })} />
+      </Card>
+
+      {/* ── AI: find what you describe ── */}
+      {config?.features.ai ? (
+        <Card>
+          <SectionTitle hint="Tell the agent what to find; it reads the transcript and picks matching moments">Find in the video</SectionTitle>
+          <Input
+            icon="search-outline"
+            value={o.aiDetectContent ?? ''}
+            onChangeText={(t) => set({ aiDetectContent: t || undefined })}
+            maxLength={200}
+            placeholder="e.g. physics comparisons in GTA 6, funny fails, best goals"
+          />
+          <Text variant="label" color={colors.textMuted}>
+            Works on uploads and links with speech. Leave empty to cut by length or loudness instead.
+          </Text>
+        </Card>
+      ) : null}
+
       {/* ── Extras ── */}
       <Card>
         <SectionTitle>Extras</SectionTitle>
@@ -466,6 +497,9 @@ export default function Create() {
           {o.mute ? ' · no sound' : ''}
           {o.captions ? ' · captions' : ''}
           {o.hook !== 'none' ? ' · hook title' : ''}
+          {o.layoutTemplate === 'split-screen' ? ' · split screen' : ''}
+          {o.removeSilence ? ' · no silence' : ''}
+          {o.aiDetectContent ? ` · finds: ${o.aiDetectContent}` : ''}
           {autoTo.length ? ` · posted to ${autoTo.length} account${autoTo.length === 1 ? '' : 's'}` : ''}
         </Text>
         {error ? <Notice tone="danger">{error}</Notice> : null}

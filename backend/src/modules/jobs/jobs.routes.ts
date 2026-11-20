@@ -208,6 +208,24 @@ jobsRouter.post(
   }),
 );
 
+/** Redo a job with new clipping options after previewing the results. */
+jobsRouter.post(
+  '/:id/redo',
+  ah(async (req, res) => {
+    const { options } = parse(z.object({ options: optionsSchema }), req.body);
+    checkLimits(options);
+    const job = await ownJob(me(req).id, String(req.params.id));
+    if (job.sourceKind === 'URL' && !job.sourceUrl) throw conflict('Original source URL is missing', 'SOURCE_MISSING');
+    if (job.sourceKind === 'UPLOAD') {
+      const src = await sourceOf(job.id);
+      if (!src) throw conflict('The uploaded file is gone. Upload it again.', 'SOURCE_GONE');
+    }
+    const next = await prisma.clipJob.create({ data: { userId: job.userId, sourceKind: job.sourceKind, sourceUrl: job.sourceUrl, sourceName: job.sourceName, title: job.title, uploader: job.uploader, thumbnailUrl: job.thumbnailUrl, sourceDuration: job.sourceDuration, options, status: JobStatus.QUEUED, stage: 'Waiting in line' } });
+    nudgeQueue();
+    res.json({ job: jobView(next) });
+  }),
+);
+
 jobsRouter.delete(
   '/:id',
   ah(async (req, res) => {

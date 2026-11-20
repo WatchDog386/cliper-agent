@@ -1,30 +1,203 @@
-body {
-  margin: 0;
-  font-family: var(--font-sans);
-  background: #F7F8FA;
-  color: #17201C;
-}
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
 
-:root {
-  --font-sans: 'Inter', sans-serif;
-  --color-bg: #FFFFFF;
-  --color-surface: #FFFFFF;
-  --color-border: #E5E7EB;
-  --color-primary: #1C1D1F;
-  --color-accent: #2DA043;
-  --color-text: #17201C;
-  --color-text-muted: #6B7280;
-}
-
-@media (prefers-color-scheme: dark) {
+@layer base {
   :root {
-    --color-bg: #121212;
-    --color-surface: #1E1E1E;
-    --color-border: #2C2E33;
-    --color-text: #FFFFFF;
-    --color-text-muted: #A3ADA8;
+    color-scheme: light;
+
+    /* Inter on desktop, as in the Business-SME dashboard */
+    --font-sans: 'Inter Variable', 'Inter', system-ui, -apple-system, 'Segoe UI', Roboto,
+      'Helvetica Neue', Arial, sans-serif;
+
+    /* Light theme tokens — Safaricom green (#2DA043) */
+    --surface: 255 255 255;
+    --surface-2: 247 249 248;
+    --surface-3: 238 242 240;
+    --field: 238 242 240;
+    --edge: 227 233 230;
+    --edge-2: 203 213 208;
+    --foreground: 23 32 28;
+    --foreground-2: 43 54 49;
+    --foreground-3: 94 107 101;
+    --foreground-4: 138 150 144;
+    --foreground-5: 170 182 176;
+    --accent: 45 160 67;
+    --accent-strong: 36 133 55;
+    --accent-soft: 234 247 237;
+    --accent-soft-2: 205 237 212;
+    --accent-border: 69 182 92;
+    --accent-text: 29 106 44;
+    --success: 0 177 64;
+    --success-strong: 0 145 52;
+    --success-soft: 209 250 229;
+    --success-border: 134 239 172;
+    --success-text: 6 95 70;
+    --warning: 217 119 6;
+    --warning-strong: 180 83 9;
+    --warning-soft: 254 243 199;
+    --warning-border: 253 230 138;
+    --warning-text: 146 64 14;
+    --danger: 220 38 38;
+    --danger-strong: 185 28 28;
+    --danger-soft: 254 226 226;
+    --danger-border: 254 202 202;
+    --danger-text: 153 27 27;
+    --info: 2 132 199;
+    --info-soft: 240 249 255;
+    --info-border: 186 230 253;
+    --info-text: 7 89 133;
+
+    /* Desktop sidebar (navy, TrioPay-style) */
+    --nav-bg: 14 33 53;
+    --nav-text: 226 232 240;
+    --nav-muted: 138 154 174;
+    --nav-active: 77 163 255;
+    --nav-hover: 255 255 255;
   }
+
+  .dark {
+    color-scheme: dark;
+
+    --surface: 30 30 30;
+    --surface-2: 18 18 18;
+    --surface-3: 48 53 56;
+    --field: 30 30 30;
+    --edge: 46 46 46;
+    --edge-2: 68 68 68;
+    --foreground: 255 255 255;
+    --foreground-2: 228 228 234;
+    --foreground-3: 168 168 176;
+    --foreground-4: 130 130 140;
+    --foreground-5: 98 98 108;
+    --accent: 45 160 67;
+    --accent-strong: 69 182 92;
+    --accent-soft: 16 48 24;
+    --accent-soft-2: 22 64 32;
+    --accent-border: 45 160 67;
+    --accent-text: 157 220 170;
+    --success: 52 211 153;
+    --success-strong: 16 185 129;
+    --success-soft: 6 46 32;
+    --success-border: 6 78 59;
+    --success-text: 167 243 208;
+    --warning: 251 191 36;
+    --warning-strong: 245 158 11;
+    --warning-soft: 53 38 9;
+    --warning-border: 120 53 15;
+    --warning-text: 253 230 138;
+    --danger: 248 113 113;
+    --danger-strong: 239 68 68;
+    --danger-soft: 56 17 17;
+    --danger-border: 127 29 29;
+    --danger-text: 254 202 202;
+    --info: 96 165 250;
+    --info-soft: 13 36 56;
+    --info-border: 30 64 175;
+    --info-text: 191 219 254;
+
+    --nav-bg: 11 22 38;
+  }
+
+  html,
+  body,
+  #root {
+    min-height: 100%;
+  }
+
   body {
-    background: #121212;
+    background-color: #f7f8fa;
+    color: rgb(var(--foreground));
+    font-family: var(--font-sans);
+    font-size: 14px;
+    line-height: 1.5;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    text-rendering: optimizeLegibility;
+    font-variant-numeric: tabular-nums;
+  }
+
+  .dark body {
+    background-color: #121212;
+  }
+
+  h1,
+  h2,
+  h3,
+  h4 {
+    text-rendering: geometricPrecision;
+  }
+
+  * {
+    outline: 0;
+  }
+
+  :focus-visible {
+    outline: 2px solid #00b140;
+    outline-offset: 2px;
+  }
+
+  input:not([type='checkbox']):not([type='radio']):not([type='range']),
+  textarea,
+  select {
+    background-color: rgb(var(--field));
+  }
+
+  input:not([type='checkbox']):not([type='radio']):not([type='range']):focus,
+  textarea:focus,
+  select:focus {
+    outline: none;
+    border-color: rgb(var(--edge-2));
+    box-shadow: none;
+  }
+
+  input:-webkit-autofill,
+  textarea:-webkit-autofill,
+  select:-webkit-autofill {
+    -webkit-box-shadow: 0 0 0 1000px rgb(var(--field)) inset !important;
+    -webkit-text-fill-color: rgb(var(--foreground)) !important;
+    caret-color: rgb(var(--foreground));
+    transition: background-color 9999s ease-out 0s;
+  }
+
+  ::selection {
+    background: rgb(var(--accent) / 0.22);
+  }
+
+  /* Slim scrollbars that match the dashboard chrome */
+  * {
+    scrollbar-width: thin;
+    scrollbar-color: rgb(var(--edge-2)) transparent;
+  }
+
+  ::-webkit-scrollbar {
+    width: 10px;
+    height: 10px;
+  }
+
+  ::-webkit-scrollbar-thumb {
+    background: rgb(var(--edge-2));
+    border: 3px solid transparent;
+    border-radius: 9999px;
+    background-clip: content-box;
+  }
+
+  ::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  .scrollbar-none {
+    scrollbar-width: none;
+  }
+
+  .scrollbar-none::-webkit-scrollbar {
+    display: none;
+  }
+}
+
+@layer utilities {
+  /* Subtle page entrance used by the main content area */
+  .page-enter {
+    animation: fade-up 0.35s cubic-bezier(0.22, 1, 0.36, 1) both;
   }
 }

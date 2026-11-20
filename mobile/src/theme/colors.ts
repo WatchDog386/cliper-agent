@@ -1,120 +1,165 @@
 /**
- * Cliper Agent — the template's "glass" look: soft page, frosted cards with hairline edges, ink actions,
- * a coral "record" accent for actions and active states. Light and airy by default; Dark can be chosen
- * in Settings.
+ * Cliper Agent - Business SME Mobile Theme
+ * Precision-focused layout optimized for touch and smaller screens
  */
+
 const light = {
-  bg: '#FFFFFF',
-  surface: '#FFFFFF',
-  surfaceAlt: '#F3F4F9',
-  surfaceHigh: '#E7E9F2',
-  border: '#E7E9F2',
-  borderStrong: '#D3D7E3',
+  bg: '#f8fafc',
+  surface: '#ffffff',
+  surfaceAlt: '#f1f5f9',
+  border: '#e2e8f0',
+  borderStrong: '#cbd5e1',
 
-  primary: '#15161A',
-  primaryPressed: '#000000',
-  onPrimary: '#FFFFFF',
-  primarySoft: 'rgba(21,22,26,0.06)',
+  primary: '#1e293b',
+  primarySoft: 'rgba(30, 41, 59, 0.08)',
+  primaryHover: '#2d3a50',
 
-  /** The chosen chip / tab. */
-  highlight: '#FF4D5E',
-  onHighlight: '#FFFFFF',
+  secondary: '#3b82f6',
+  secondarySoft: 'rgba(59, 130, 246, 0.1)',
+  secondaryHover: '#2563eb',
 
-  glass: '#FFFFFF',
-  glassStrong: '#FFFFFF',
-  glassBorder: 'rgba(23,28,56,0.08)',
-  hatch: 'rgba(21,22,26,0.13)',
-  bgTop: '#F7F8FC',
-  bgBottom: '#F7F8FC',
+  /* Action colors - precise and touch-friendly */
+  success: '#10b981',
+  successSoft: 'rgba(16, 185, 129, 0.1)',
+  successHover: '#059669',
 
-  /** Coral "record" accent */
-  brand: '#FF4D5E',
-  onBrand: '#FFFFFF',
-  brandSoft: '#FFF0F2',
-  accent: '#6D5BFF',
-  accentSoft: '#EFECFF',
+  warning: '#f59e0b',
+  warningSoft: 'rgba(245, 158, 11, 0.1)',
+  warningHover: '#d97706',
 
-  text: '#15161A',
-  textMuted: '#5D6170',
-  textDim: '#8D92A1',
+  error: '#ef4444',
+  errorSoft: 'rgba(239, 68, 68, 0.1)',
+  errorHover: '#dc2626',
 
-  success: '#16A34A',
-  successSoft: '#DCFCE7',
-  warning: '#D97706',
-  warningSoft: '#FEF3C7',
-  danger: '#DC2626',
-  dangerSoft: '#FEE2E2',
-  info: '#0284C7',
-  infoSoft: '#E0F2FE',
+  /* Neutral grays - 1000 to 50 scale */
+  gray100: '#f8fafc',
+  gray200: '#f1f5f9',
+  gray300: '#e2e8f0',
+  gray400: '#cbd5e1',
+  gray500: '#94a3b8',
+  gray600: '#64748b',
+  gray700: '#475569',
+  gray800: '#1e293b',
+  gray900: '#0f172a',
 
-  /** The summary card at the end of a form: a soft tint of the brand in light mode. */
-  hero: '#FFF4F1',
-  onHero: '#15161A',
-  onHeroMuted: '#5D6170',
-  onHeroDim: '#8D92A1',
-  heroInset: 'rgba(21,22,26,0.06)',
-  heroBorder: 'rgba(255,77,94,0.22)',
+  /* Backgrounds */
+  bg: '#f8fafc',
+  surface: '#ffffff',
+  surfaceAlt: '#f1f5f9',
+  card: '#ffffff',
+  cardAlt: '#f8fafc',
 
-  /** The floating tab bar on phones. */
-  bar: '#FFFFFF',
-  barBorder: 'rgba(23,28,56,0.08)',
-  barIcon: '#6B7080',
+  /* Borders */
+  border: '#e2e8f0',
+  borderStrong: '#cbd5e1',
+  inputBorder: '#94a3b8',
 
-  overlay: 'rgba(15,18,32,0.45)',
-  scrim: 'rgba(0,0,0,0.45)',
-  white: '#FFFFFF',
-  black: '#000000',
-};
+  /* Text colors */
+  text: '#0f172a',
+  textMuted: '#64748b',
+  textDim: '#94a3b8',
+  textInverted: '#ffffff',
+
+  /* Status colors */
+  successBg: '#d1fae5',
+  successText: '#065f46',
+  warningBg: '#fef3c7',
+  warningText: '#92400e',
+  errorBg: '#fee2e2',
+  errorText: '#991b1b',
+
+  /* Brand */
+  brand: '#10b981',
+  brandSoft: 'rgba(16, 185, 129, 0.1)',
+  brandHover: '#059669',
+
+  /* Highlight */
+  highlight: '#fbbf24',
+  highlightSoft: 'rgba(251, 191, 36, 0.1)',
+
+  /* White and black */
+  white: '#ffffff',
+  black: '#0f172a',
+} as const;
 
 const dark: typeof light = {
-  ...light,
-  bg: '#0E0F12',
-  surface: '#17181D',
-  surfaceAlt: '#22242B',
-  surfaceHigh: '#2C2F37',
-  border: 'rgba(255,255,255,0.10)',
-  borderStrong: 'rgba(255,255,255,0.22)',
+  bg: '#0f172a',
+  surface: '#1e293b',
+  surfaceAlt: '#1e293b',
+  border: '#475569',
+  borderStrong: '#64748b',
 
-  primary: '#FFFFFF',
-  primaryPressed: '#E5E5E5',
-  onPrimary: '#0E0F12',
-  primarySoft: 'rgba(255,255,255,0.08)',
+  primary: '#f8fafc',
+  primarySoft: 'rgba(248, 250, 252, 0.1)',
+  primaryHover: '#cbd5e1',
 
-  highlight: '#E6F03A',
-  onHighlight: '#0E0F12',
+  secondary: '#60a5fa',
+  secondarySoft: 'rgba(96, 165, 250, 0.1)',
+  secondaryHover: '#93c5fd',
 
-  glass: '#17181D',
-  glassStrong: '#1B1D23',
-  glassBorder: 'rgba(255,255,255,0.07)',
-  hatch: 'rgba(255,255,255,0.12)',
-  bgTop: '#0E0F12',
-  bgBottom: '#0E0F12',
+  /* Action colors */
+  success: '#34d399',
+  successSoft: 'rgba(52, 211, 153, 0.1)',
+  successHover: '#10b981',
 
-  brandSoft: 'rgba(255,77,94,0.16)',
-  accentSoft: 'rgba(109,91,255,0.2)',
+  warning: '#f87171',
+  warningSoft: 'rgba(248, 113, 113, 0.1)',
+  warningHover: '#f87171',
 
-  text: '#F4F5F7',
-  textMuted: 'rgba(244,245,247,0.7)',
-  textDim: 'rgba(244,245,247,0.45)',
+  error: '#f87171',
+  errorSoft: 'rgba(248, 113, 113, 0.1)',
+  errorHover: '#f87171',
 
-  successSoft: 'rgba(22,163,74,0.2)',
-  warningSoft: 'rgba(217,119,6,0.22)',
-  dangerSoft: 'rgba(220,38,38,0.22)',
-  infoSoft: 'rgba(2,132,199,0.22)',
+  /* Neutral grays */
+  gray100: '#f8fafc',
+  gray200: '#f1f5f9',
+  gray300: '#e2e8f0',
+  gray400: '#cbd5e1',
+  gray500: '#94a3b8',
+  gray600: '#64748b',
+  gray700: '#475569',
+  gray800: '#1e293b',
+  gray900: '#0f172a',
 
-  hero: '#1D1F26',
-  onHero: '#FFFFFF',
-  onHeroMuted: 'rgba(255,255,255,0.72)',
-  onHeroDim: 'rgba(255,255,255,0.5)',
-  heroInset: 'rgba(255,255,255,0.14)',
-  heroBorder: 'rgba(255,255,255,0.12)',
+  /* Backgrounds */
+  bg: '#0f172a',
+  surface: '#1e293b',
+  surfaceAlt: '#1e293b',
+  card: '#1e293b',
+  cardAlt: '#3b4a5c',
 
-  bar: '#15161A',
-  barBorder: 'rgba(255,255,255,0.08)',
-  barIcon: 'rgba(255,255,255,0.75)',
+  /* Borders */
+  border: '#475569',
+  borderStrong: '#64748b',
+  inputBorder: '#94a3b8',
 
-  overlay: 'rgba(0,0,0,0.75)',
-};
+  /* Text colors */
+  text: '#f8fafc',
+  textMuted: '#94a3b8',
+  textDim: '#64748b',
+  textInverted: '#1e293b',
+
+  /* Status colors */
+  successBg: '#16a34a1a',
+  successText: '#34d399',
+  warningBg: '#f973161a',
+  warningText: '#f97316',
+  errorBg: '#ef44441a',
+  errorText: '#f87171',
+
+  /* Brand */
+  brand: '#3b82f6',
+  brandSoft: 'rgba(59, 130, 246, 0.1)',
+  brandHover: '#60a5fa',
+
+  /* Highlight */
+  highlight: '#fbbf24',
+  highlightSoft: 'rgba(251, 191, 36, 0.1)',
+
+  /* White and black */
+  white: '#ffffff',
+  black: '#0f172a',
+} as const;
 
 export type ThemeMode = 'light' | 'dark';
 const THEME_KEY = 'cliper.theme';
@@ -141,8 +186,40 @@ export function setThemeMode(mode: ThemeMode) {
 
 export const colors: typeof light = isDark ? dark : light;
 
+/* ============= Spacing System (Tight for Mobile) ============= */
+export const spacing = {
+  /* Tiny - for inner element padding */
+  tiny: '0.25rem',
+  /* Small - for component margins */
+  small: '0.5rem',
+  /* Medium - compact card spacing for mobile */
+  medium: '0.75rem',
+  /* Large - section spacing */
+  large: '1rem',
+  /* XL - page margins */
+  xlarge: '1.5rem',
+} as const;
+
+/* ============= Border Radii ============= */
+export const radius = {
+  none: '0',
+  sm: '6px',
+  md: '8px',
+  lg: '12px',
+  full: '9999px',
+} as const;
+
+/* ============= Z-Index ============= */
+export const zIndex = {
+  base: '0',
+  card: '1',
+  overlay: '10',
+  modal: '100',
+} as const;
+
+/* ============= Gradients ============= */
 export const gradients = {
-  hero: (isDark ? ['#2A1C3F', '#14151A'] : ['#FF7A59', '#FF3D7F']) as readonly [string, string],
-  brand: ['#FF6B5E', '#FF3D7F'] as const,
-  accent: ['#8B7BFF', '#5B47F5'] as const,
+  hero: (isDark ? ['#0f172b', '#1e293b'] : ['#f8fafc', '#f1f5f9']) as readonly [string, string],
+  brand: (isDark ? ['#3b82f6', '#60a5fa'] : ['#10b981', '#059669']) as const,
+  accent: (isDark ? ['#93c5fd', '#60a5fa'] : ['#8b5cf6', '#a78bfa']) as const,
 };

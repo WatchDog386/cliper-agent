@@ -12,15 +12,22 @@ import { z } from 'zod';
  *                   blur  – whole picture on a blurred copy of itself
  *                   pad   – whole picture with black bars
  *   focus           which part of the picture to keep when cropping: start (left/top), center, end (right/bottom)
+ *   layoutTemplate  full – single video fills the frame
+ *                   split-screen – two views stacked vertically (phone) or side-by-side (desktop)
+ *   removeSilence   cut out pauses and filler between spoken words
+ *   aiDetectContent  describe what to find (e.g. "physics comparisons in GTA 6"); Claude picks moments
+ *   safeZone        keep text and subjects away from platform UI edges
  */
 
 export const ASPECTS = ['phone', 'desktop', 'square', 'portrait', 'original'] as const;
 export const FITS = ['crop', 'blur', 'pad'] as const;
 export const MODES = ['split', 'highlights', 'custom'] as const;
+export const LAYOUTS = ['full', 'split-screen'] as const;
 
 export type Aspect = (typeof ASPECTS)[number];
 export type Fit = (typeof FITS)[number];
 export type Mode = (typeof MODES)[number];
+export type LayoutTemplate = (typeof LAYOUTS)[number];
 
 const range = z
   .object({ start: z.number().min(0), end: z.number().positive() })
@@ -45,6 +52,16 @@ export const optionsSchema = z
     /** Playback speed of the clip (0.5–2×). */
     speed: z.number().min(0.5).max(2).default(1),
 
+    /* ── Layout templates ── */
+    /** full = one video fills the frame; split-screen = stacked vertically (phone) or side-by-side (desktop). */
+    layoutTemplate: z.enum(LAYOUTS).default('full'),
+    /** Cut out pauses and filler between words. */
+    removeSilence: z.boolean().default(false),
+
+    /* ── AI content detection ── */
+    /** Describe what to find (e.g. "physics comparisons in GTA 6"); Claude picks matching moments. */
+    aiDetectContent: z.string().trim().max(200).optional(),
+
     /* ── Edits that make a clip ready to post ── */
     /** Burn what is said into the picture, a few words at a time. */
     captions: z.boolean().default(false),
@@ -61,6 +78,8 @@ export const optionsSchema = z
     aiPick: z.boolean().default(false),
     /** What the video is about, for hashtags and titles ("GTA 6"). */
     topic: z.string().trim().max(80).optional(),
+    /** Keep text and subjects clear of platform UI edges: none · basic · tight. */
+    safeZone: z.enum(['none', 'basic', 'tight']).default('basic'),
   })
   .refine((o) => o.endAt === undefined || o.startAt === undefined || o.endAt > o.startAt, { message: 'End must be after start', path: ['endAt'] })
   .refine((o) => o.hook !== 'custom' || Boolean(o.hookText), { message: 'Write the title to show on the clips', path: ['hookText'] })
@@ -85,7 +104,6 @@ export function frameSize(aspect: Aspect, quality: ClipOptions['quality'], sourc
       return { width: q, height: even((q * 5) / 4) } as const;
     case 'original': {
       if (!source?.width || !source.height) return { width: even((q * 16) / 9), height: q } as const;
-      // Shorter side capped at the chosen quality, never upscaled
       const short = Math.min(source.width, source.height);
       const k = Math.min(1, q / short);
       return { width: even(source.width * k), height: even(source.height * k) } as const;

@@ -12,6 +12,13 @@ export default defineConfig({
   server: {
     port: 3000,
     host: true,
+    proxy: {
+      // Local backend (backend/ npm run dev) during development
+      '/api': {
+        target: 'http://localhost:4000',
+        changeOrigin: true,
+      },
+    },
   },
   build: {
     outDir: 'dist',

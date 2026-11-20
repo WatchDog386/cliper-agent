@@ -6,7 +6,7 @@ import { prisma } from '../lib/prisma';
 import { jobDir, toStored } from '../lib/storage';
 import { ToolError } from '../lib/tools';
 import { queueAutoPublish } from '../social/autopublish';
-import { aiAvailable, pickMoments, writeCopy } from '../ai/copy';
+import { aiAvailable, detectContent, pickMoments, writeCopy } from '../ai/copy';
 import { canDrawText, renderParallel } from './encoder';
 import { buildAss, type Word } from './overlay';
 import { captionsAvailable, sliceWords, transcribe, wordsToText } from './transcribe';
@@ -120,10 +120,11 @@ export async function processJob(id: string, signal: AbortSignal) {
 
     // ── 1. Source ──
     const fetchShare = job.sourceKind === 'URL' ? 35 : 3;
+    let isLive = false;
     if (job.sourceKind === 'URL') {
       await report(JobStatus.FETCHING, 1, 'Reading the link', true);
       const meta = await fetchMeta(job.sourceUrl!, signal);
-      if (meta.isLive) throw new Error('Live streams cannot be clipped until they have ended');
+      isLive = Boolean(meta.isLive);
       if (meta.duration && meta.duration > env.MAX_SOURCE_MINUTES * 60) throw new Error(`This video is longer than ${env.MAX_SOURCE_MINUTES} minutes`);
       await prisma.clipJob.update({
         where: { id },
@@ -149,15 +150,45 @@ export async function processJob(id: string, signal: AbortSignal) {
     const videoTitle = fresh.title ?? fresh.sourceName ?? 'Video';
     const creator = fresh.uploader;
     const notes: string[] = [];
-    const wantWords = (o.captions || o.hook === 'auto') && info.hasAudio;
-    const analyseShare = o.mode === 'highlights' ? 12 : 0;
+    const wantWords = !isLive && (o.captions || o.hook === 'auto' || Boolean(o.aiDetectContent)) && info.hasAudio;
+    const analyseShare = (o.mode === 'highlights' || Boolean(o.aiDetectContent)) ? 12 : 0;
     const wordShare = wantWords ? 10 : 0;
     const base = fetchShare + analyseShare + wordShare;
 
     let segments: Segment[] | null = null;
     /** Every word of the video (only when the moments are chosen from what is said). */
     let allWords: Word[] | null = null;
-    if (o.mode === 'highlights' && o.aiPick && info.hasAudio) {
+    // Reuse a transcription we already did for this video (skip re-transcribing)
+    const stored = (job.options as { transcriptWords?: Word[] }).transcriptWords;
+    if (stored?.length) allWords = stored;
+
+    // ── AI content detection: find moments matching what the person asked for ──
+    if (o.aiDetectContent && info.hasAudio) {
+      if (!captionsAvailable() || !aiAvailable()) {
+        notes.push(`content detection skipped (needs transcription service and AI key)`);
+      } else {
+        const { from, to } = usableWindow(info.duration, o);
+        const seconds = Math.min(o.segmentSeconds, to - from);
+        const count = Math.max(1, Math.min(o.maxClips, Math.floor((to - from) / seconds)));
+        await report(JobStatus.ANALYZING, fetchShare, 'Listening to the whole video', true);
+        try {
+          allWords = (await transcribe(sourceFile, from, to - from, dir, 'all', signal, (f) => soft(JobStatus.ANALYZING, fetchShare + f * 12 * 0.8, `Listening to the whole video · ${Math.round(f * 100)}%`))).map((w) => ({
+            ...w,
+            start: w.start + from,
+            end: w.end + from,
+          }));
+          await prisma.clipJob.update({ where: { id }, data: { options: { ...(job.options as Prisma.JsonObject), transcriptWords: allWords } as unknown as Prisma.InputJsonValue } });
+          await report(JobStatus.ANALYZING, fetchShare + 12 * 0.8, `Finding: ${o.aiDetectContent}`, true);
+          segments = await detectContent(allWords, { from, to, seconds, count, videoTitle, topic: o.topic ?? null, lookingFor: o.aiDetectContent }, signal);
+          if (!segments) notes.push(`could not find: ${o.aiDetectContent} (the AI could not match them)`);
+        } catch (e) {
+          if (signal.aborted) throw e;
+          notes.push(`content detection failed (${e instanceof Error ? e.message : 'transcription failed'})`);
+        }
+      }
+    }
+
+    if (!segments && o.mode === 'highlights' && o.aiPick && info.hasAudio) {
       if (!captionsAvailable() || !aiAvailable()) notes.push('moments chosen by loudness (choosing by what is said needs the transcription service and the AI key)');
       else {
         const { from, to } = usableWindow(info.duration, o);
@@ -168,6 +199,7 @@ export async function processJob(id: string, signal: AbortSignal) {
             start: w.start + from,
             end: w.end + from,
           }));
+          await prisma.clipJob.update({ where: { id }, data: { options: { ...(job.options as Prisma.JsonObject), transcriptWords: allWords } as unknown as Prisma.InputJsonValue } });
           await report(JobStatus.ANALYZING, fetchShare + analyseShare * 0.8, 'Choosing the best moments', true);
           const seconds = Math.min(o.segmentSeconds, to - from);
           segments = await pickMoments(allWords, { from, to, seconds, count: Math.max(1, Math.min(o.maxClips, Math.floor((to - from) / seconds))), videoTitle, topic: o.topic ?? null }, signal);

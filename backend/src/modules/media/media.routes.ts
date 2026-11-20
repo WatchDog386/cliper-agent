@@ -45,13 +45,13 @@ const fileName = (title: string | null, index: number, aspect: Aspect) => `${slu
 const aspectOf = (options: unknown) => ((options as { aspect?: Aspect } | null)?.aspect ?? 'original') as Aspect;
 
 mediaRouter.get(
-  '/clips/:id/video',
-  ah(async (req, res) => {
-    const clip = await clipFor(req);
-    // sendFile answers Range requests, so players can seek
-    res.setHeader('Cache-Control', 'private, max-age=3600');
-    res.type('video/mp4').sendFile(resolveStored(clip.file));
-  }),
+   '/clips/:id/video',
+   ah(async (req, res) => {
+     const clip = await clipFor(req);
+     // sendFile answers Range requests, so players can seek
+     res.setHeader('Cache-Control', 'private, max-age=3600');
+     res.type('video/mp4').sendFile(resolveStored(clip.file));
+   }),
 );
 
 mediaRouter.get(

@@ -13,6 +13,8 @@ export type Aspect = 'phone' | 'desktop' | 'square' | 'portrait' | 'original';
 export type Fit = 'crop' | 'blur' | 'pad';
 export type Focus = 'start' | 'center' | 'end';
 export type Quality = '480' | '720' | '1080';
+export type LayoutTemplate = 'full' | 'split-screen';
+export type SafeZone = 'none' | 'basic' | 'tight';
 
 export interface ClipOptions {
   mode: Mode;
@@ -28,6 +30,10 @@ export interface ClipOptions {
   fade: boolean;
   mute: boolean;
   speed: number;
+  layoutTemplate: LayoutTemplate;
+  removeSilence: boolean;
+  aiDetectContent?: string;
+  safeZone: SafeZone;
   captions: boolean;
   captionStyle: 'bold' | 'karaoke' | 'minimal';
   hook: 'none' | 'custom' | 'auto';

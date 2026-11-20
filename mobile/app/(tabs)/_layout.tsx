@@ -1,10 +1,10 @@
 import { Pressable, StyleSheet, View } from 'react-native';
-import { Redirect, Tabs } from 'expo-router';
+import { Redirect, Tabs, useRouter } from 'expo-router';
 
 /** The part of React Navigation's tab-bar props this bar uses. */
 interface BottomTabBarProps {
   state: { index: number; routes: { key: string; name: string }[] };
-  navigation: { emit: (e: { type: 'tabPress'; target: string; canPreventDefault: true }) => { defaultPrevented: boolean }; navigate: (name: string) => void };
+  navigation: { navigate: (name: string) => void };
 }
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -27,9 +27,9 @@ const TABS: Record<string, { label: string; icon: Icon; iconOn: Icon }> = {
 /** Phones: the template's floating pill bar. Desktop browsers: a side rail. */
 function TabBar({ state, navigation, desktop }: BottomTabBarProps & { desktop: boolean }) {
   const insets = useSafeAreaInsets();
-  const go = (name: string, key: string, focused: boolean) => {
-    const e = navigation.emit({ type: 'tabPress', target: key, canPreventDefault: true });
-    if (!focused && !e.defaultPrevented) navigation.navigate(name);
+  const router = useRouter();
+  const go = (name: string, focused: boolean) => {
+    if (!focused) router.push(`/${name}`);
   };
 
   if (desktop) {
@@ -48,7 +48,7 @@ function TabBar({ state, navigation, desktop }: BottomTabBarProps & { desktop: b
           if (!t) return null;
           const on = state.index === i;
           return (
-            <Pressable key={r.key} onPress={() => go(r.name, r.key, on)} style={(s) => [styles.railItem, on && styles.railOn, (s as { hovered?: boolean }).hovered && !on && { backgroundColor: desk.navHover }]}>
+            <Pressable key={r.key} onPress={() => go(r.name, on)} style={(s) => [styles.railItem, on && styles.railOn, (s as { hovered?: boolean }).hovered && !on && { backgroundColor: desk.navHover }]}>
               <Ionicons name={on ? t.iconOn : t.icon} size={20} color={on ? desk.navActive : desk.navMuted} />
               <Text variant="body" color={on ? desk.navTextOn : desk.navText} fixedColor style={{ fontFamily: on ? fonts.semibold : fonts.medium }}>
                 {t.label}
@@ -68,7 +68,7 @@ function TabBar({ state, navigation, desktop }: BottomTabBarProps & { desktop: b
           if (!t) return null;
           const on = state.index === i;
           return (
-            <Pressable key={r.key} onPress={() => go(r.name, r.key, on)} accessibilityRole="tab" accessibilityLabel={t.label} accessibilityState={{ selected: on }} style={[styles.tab, on && styles.tabOn]}>
+            <Pressable key={r.key} onPress={() => go(r.name, on)} accessibilityRole="tab" accessibilityLabel={t.label} accessibilityState={{ selected: on }} style={[styles.tab, on && styles.tabOn]}>
               <Ionicons name={on ? t.iconOn : t.icon} size={21} color={on ? colors.onHighlight : colors.barIcon} />
               {on ? (
                 <Text variant="label" color={colors.onHighlight} fixedColor style={{ fontFamily: fonts.semibold }}>
