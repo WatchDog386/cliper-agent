@@ -14,9 +14,15 @@ const say = (s = '') => console.log(s);
 const step = (s) => say(`\n▶ ${s}`);
 const sh = (cmd, cwd) => spawnSync(cmd, { cwd, stdio: 'inherit', shell: true }).status === 0;
 
-const major = Number(process.versions.node.split('.')[0]);
-if (major < 22) {
-  say(`✗ Node.js ${process.versions.node} is too old. Install Node 22 or newer from https://nodejs.org and run npm run setup again.`);
+// React Native / Expo support Node ^22.13 || ^24.3 || >=26 (odd "current" releases like 23 and 25 are skipped)
+const [major, minor] = process.versions.node.split('.').map(Number);
+const supported = (major === 22 && minor >= 13) || (major === 24 && minor >= 3) || major >= 26;
+if (!supported && process.env.SKIP_NODE_CHECK !== '1') {
+  say(`✗ Node.js ${process.versions.node} is not supported by the app's toolchain (React Native / Expo need 22.13+, 24.3+ or 26+).`);
+  say('  Install Node 24 LTS:');
+  say(process.platform === 'win32' ? '    winget install OpenJS.NodeJS.LTS      (or download it from https://nodejs.org)' : process.platform === 'darwin' ? '    brew install node@24      (or https://nodejs.org)' : '    https://nodejs.org (or: nvm install 24)');
+  say('  then open a new terminal, check `node -v`, delete backend/node_modules and mobile/node_modules, and run npm run setup again.');
+  say('  (To try anyway: set SKIP_NODE_CHECK=1)');
   process.exit(1);
 }
 if (/onedrive/i.test(root)) {

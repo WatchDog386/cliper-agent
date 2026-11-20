@@ -3,7 +3,7 @@
 Everything runs on your machine: the API, the job queue, ffmpeg rendering, speech-to-text and the web
 app. Only the database lives in Supabase (or use a local Postgres instead). Works on macOS, Windows and Linux.
 
-You need **Node.js 22+** and **git**. Python 3.9+ is only needed for auto captions.
+You need **Node.js 24 LTS** (or 22.13+) and **git**. Not Node 23 or 25: React Native and Expo skip those releases. Python 3.9+ is only needed for auto captions.
 
 ## 1. Get the code
 
