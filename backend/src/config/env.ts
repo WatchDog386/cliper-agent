@@ -50,6 +50,12 @@ const schema = z.object({
   YOUTUBE_API_KEY: z.string().default(''),
   TRENDING_REGION: z.string().length(2).default('US'),
   APP_NAME: z.string().default('Cliper Agent'),
+
+  /** OpusClip API key (sk-…): switches on the "AI clips" mode. Keep it in .env only, never in git. */
+  OPUSCLIP_API_KEY: z.string().default(''),
+  OPUSCLIP_API_URL: z.string().url().default('https://api.opus.pro'),
+  /** Give up on an OpusClip project after this many minutes. */
+  OPUSCLIP_TIMEOUT_MINUTES: z.coerce.number().min(5).default(120),
 });
 
 const parsed = schema.safeParse(process.env);

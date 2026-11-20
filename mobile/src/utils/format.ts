@@ -14,7 +14,9 @@ export function parseClock(text: string): number | undefined {
   if (!t) return undefined;
   if (/^\d+(\.\d+)?$/.test(t)) return Number(t);
   const parts = t.split(':').map(Number);
-  if (parts.some((p) => !Number.isFinite(p)) || parts.length > 3) return undefined;
+  if (parts.some((p) => !Number.isFinite(p) || p < 0) || parts.length > 3) return undefined;
+  // Minutes and seconds after the first part must be under 60 ("1:75" is a typo, not 2:15)
+  if (parts.slice(1).some((p) => p >= 60)) return undefined;
   return parts.reduce((acc, p) => acc * 60 + p, 0);
 }
 
@@ -42,6 +44,8 @@ export function ago(iso: string) {
 /** How many clips the settings will make from a video of `total` seconds (mirrors the server's planner). */
 export function estimateClips(total: number | null | undefined, o: { mode: string; segmentSeconds: number; maxClips: number; startAt?: number; endAt?: number; ranges?: unknown[] }) {
   if (o.mode === 'custom') return Math.min(o.ranges?.length ?? 0, o.maxClips);
+  // The AI decides how many moments are worth clipping
+  if (o.mode === 'ai') return null;
   if (!total) return null;
   const from = Math.min(o.startAt ?? 0, total);
   const to = Math.min(Math.max(from, o.endAt ?? total), total);

@@ -8,7 +8,8 @@ export interface User {
   createdAt: string;
 }
 
-export type Mode = 'split' | 'highlights' | 'custom';
+export type Mode = 'split' | 'highlights' | 'custom' | 'ai';
+export type AiDuration = 'auto' | 'short' | 'medium' | 'long' | 'xl';
 export type Aspect = 'phone' | 'desktop' | 'square' | 'portrait' | 'original';
 export type Fit = 'crop' | 'blur' | 'pad';
 export type Focus = 'start' | 'center' | 'end';
@@ -28,6 +29,13 @@ export interface ClipOptions {
   fade: boolean;
   mute: boolean;
   speed: number;
+  /** AI clips (OpusClip) */
+  aiModel?: 'ClipBasic' | 'ClipAnything';
+  aiDuration?: AiDuration;
+  aiPrompt?: string;
+  aiTemplateId?: string;
+  aiHook?: boolean;
+  aiLanguage?: string;
 }
 
 export type JobStatus = 'QUEUED' | 'FETCHING' | 'ANALYZING' | 'RENDERING' | 'DONE' | 'FAILED' | 'CANCELLED';
@@ -42,6 +50,10 @@ export interface Clip {
   height: number;
   sizeBytes: number;
   score: number | null;
+  /** AI clips: headline, post caption and hashtags. */
+  title?: string | null;
+  description?: string | null;
+  hashtags?: string | null;
   videoUrl: string;
   thumbUrl: string | null;
   downloadUrl: string;
@@ -64,6 +76,7 @@ export interface Job {
   progress: number;
   stage: string | null;
   error: string | null;
+  engine?: 'local' | 'opusclip';
   createdAt: string;
   startedAt: string | null;
   finishedAt: string | null;
@@ -101,6 +114,22 @@ export interface AppConfig {
   allowSignup: boolean;
   limits: { maxSourceMinutes: number; maxClipsPerJob: number; maxUploadMb: number };
   discover: 'youtube-trending' | 'search';
+  /** AI clips (OpusClip) are set up on the server. */
+  ai?: boolean;
+}
+
+export interface AiStatus {
+  enabled: boolean;
+  ok: boolean;
+  provider: string;
+  templates: { id: string; name: string; isDefault: boolean }[];
+  message?: string;
+}
+
+export interface AdminUser extends User {
+  active: boolean;
+  jobs: number;
+  clips: number;
 }
 
 export const ACTIVE: JobStatus[] = ['QUEUED', 'FETCHING', 'ANALYZING', 'RENDERING'];

@@ -18,7 +18,8 @@ they'll be watched:
 ## Features
 
 - **Link or upload.** Paste a link, or tap **Paste**, and the app previews the title, length and thumbnail. You can also upload a video file (with upload progress).
-- **Three clipping modes:**
+- **Four clipping modes:**
+  - **AI clips (OpusClip)**: the AI finds the viral hooks in a long video, renders vertical clips with animated captions, and writes a headline, a post caption and hashtags for each, with a **virality score** (clips come back ranked). Choose *ClipAnything* (any video, follows your prompt, e.g. "the funniest reactions") or *ClipBasic* (talking videos), a length range, an AI hook headline and one of your OpusClip brand templates. Needs `OPUSCLIP_API_KEY`.
   - **Split evenly**: back-to-back clips of a set length (15 s, 30 s, 45 s, 1 min, 90 s, 3 min, or any length from 3 s to 10 min).
   - **Best moments**: the agent measures loudness every second (EBU R128) and picks the most energetic, non-overlapping moments.
   - **My time ranges**: cut exactly the parts you list (`1:05 → 1:35`, …).
@@ -32,6 +33,8 @@ they'll be watched:
 - **Trending tab**: YouTube's real *most popular* chart by category when a YouTube API key is set, otherwise search-based discovery. **Clip this** sends a video straight to the clipper.
 - **Accounts**: email + password. The first account is the admin. Sign-up can be closed. Each person only sees their own jobs.
 - **Housekeeping**: finished jobs and their files are deleted after `KEEP_JOBS_DAYS` (default 7).
+- **Studio UI**: a dark "neon studio" design (lime actions, violet AI glow) with a Home dashboard (one-box link → clips), a two-column Create studio with a live summary, Projects with search, a per-clip page (player, AI caption to copy, virality ring, previous / next), an Admin page (team, storage, failures) and a 404 page.
+- **Demo build**: `EXPO_PUBLIC_DEMO=1 npx expo export -p web` builds the whole app with sample projects in the browser and no server, for previews.
 - **Runs everywhere**: one Expo codebase gives a responsive web app (a side rail on desktop, a floating tab bar on phones), an installable PWA, and Android/iOS builds.
 
 ## How it works
@@ -123,6 +126,26 @@ SKIP_DB=1 npx vitest run test/plan.test.ts   # planner / filter unit tests only
 | `YOUTUBE_API_KEY` | – | Enables YouTube's real trending chart in the Trending tab |
 | `TRENDING_REGION` | `US` | Country for the trending chart |
 | `ALLOW_PRIVATE_URLS` | `false` | Development only: allow links to localhost / private networks |
+| `OPUSCLIP_API_KEY` | – | OpusClip API key: switches on **AI clips**. Server-side only; never commit it |
+| `OPUSCLIP_TIMEOUT_MINUTES` | `120` | Give up on an OpusClip project after this long |
+| `TRUST_PROXY` | `1` (prod) | Proxies in front of the API; `2` behind Cloudflare ([docs/CLOUDFLARE.md](docs/CLOUDFLARE.md)) |
+
+## AI clips (OpusClip)
+
+1. Get an API key in the OpusClip dashboard (API access is on the Pro (Beta), Max and Business plans).
+2. Put it in `backend/.env` (development) or `deploy/.env` (production) as `OPUSCLIP_API_KEY=sk-…` and restart the API.
+3. **Settings** shows *AI engine · OpusClip: Connected* and your brand templates.
+
+An AI project: the server creates an OpusClip project from the link (`POST /api/clip-projects`), polls it
+(about every 20 s, well under the 30 requests/minute limit), then downloads each finished clip into its own
+storage with a thumbnail, so downloads, the zip, the clip page and retention work as for any other project.
+A retry re-uses the OpusClip project instead of paying for it again. Credits: 1 per source minute,
+10 minimum per project. AI clips need a link (uploads use the other modes).
+
+## Behind Cloudflare
+
+See [docs/CLOUDFLARE.md](docs/CLOUDFLARE.md): edge caching of the hashed scripts and fonts, `TRUST_PROXY=2`,
+SSL "Full (strict)" and the 100 MB upload limit.
 
 ## Responsible use
 

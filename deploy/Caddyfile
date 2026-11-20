@@ -20,7 +20,8 @@
 		-Server
 	}
 
-	# API: video uploads can be large
+	# API (Cloudflare does not cache it: JSON and extension-less media links bypass its cache)
+	# Video uploads can be large
 	handle /api/* {
 		request_body {
 			max_size {$MAX_UPLOAD_MB:2048}MB
@@ -40,9 +41,11 @@
 
 	# Web app (Expo web build, single-page app)
 	handle {
-		@immutable path /_expo/static/*
+		# Scripts and fonts/images carry a content hash in their name: cache them for a year
+		# (browsers and Cloudflare's edge); the HTML shell is revalidated every time
+		@immutable path /_expo/static/* /assets/*
 		header @immutable Cache-Control "public, max-age=31536000, immutable"
-		@mutable not path /_expo/static/*
+		@mutable not path /_expo/static/* /assets/*
 		header @mutable Cache-Control "no-cache"
 		root * /srv/web
 		try_files {path} {path}.html /index.html

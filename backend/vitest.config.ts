@@ -18,6 +18,8 @@ export default defineConfig({
       API_RATE_LIMIT: '100000',
       STORAGE_DIR: 'storage-test',
       ALLOW_SIGNUP: 'true',
+      // Never call the real OpusClip API from tests (a developer's .env may hold a key)
+      OPUSCLIP_API_KEY: '',
     },
   },
 });

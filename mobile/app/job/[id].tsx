@@ -1,36 +1,22 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { Alert, Linking, Platform, Pressable, StyleSheet, useWindowDimensions, View } from 'react-native';
+import { Image, Linking, StyleSheet, useWindowDimensions, View } from 'react-native';
 import { router, useLocalSearchParams } from 'expo-router';
+import { LinearGradient } from 'expo-linear-gradient';
 import Ionicons from '@expo/vector-icons/Ionicons';
-import { Button } from '../../src/components/Button';
+import { Button, IconButton } from '../../src/components/Button';
 import { Text } from '../../src/components/Text';
 import { ClipCard } from '../../src/components/ClipCard';
-import { Card, Empty, Notice, ProgressBar, Screen, Spinner, StatusPill } from '../../src/components/ui';
-import { api } from '../../src/api/client';
+import { Badge, Card, Empty, Glow, Notice, ProgressBar, Screen, Skeleton, StatusPill } from '../../src/components/ui';
+import { api, mediaUrl } from '../../src/api/client';
 import { ACTIVE, type Aspect, type Job } from '../../src/api/types';
-import { colors, fonts, space } from '../../src/theme';
+import { colors, fonts, radius, space } from '../../src/theme';
 import { useDesktop } from '../../src/theme/desktop';
 import { bytes, clock } from '../../src/utils/format';
 import { saveFile } from '../../src/utils/download';
+import { confirm, slugOf } from '../../src/utils/confirm';
 
-const STEPS = [
-  { key: 'FETCHING', label: 'Download' },
-  { key: 'ANALYZING', label: 'Analyse' },
-  { key: 'RENDERING', label: 'Clip' },
-  { key: 'DONE', label: 'Ready' },
-] as const;
 const ORDER = ['QUEUED', 'FETCHING', 'ANALYZING', 'RENDERING', 'DONE'];
 const TAG: Record<Aspect, string> = { phone: '9x16', desktop: '16x9', square: '1x1', portrait: '4x5', original: 'original' };
-
-function confirm(message: string): Promise<boolean> {
-  if (Platform.OS === 'web') return Promise.resolve(window.confirm(message));
-  return new Promise((resolve) =>
-    Alert.alert('Are you sure?', message, [
-      { text: 'Cancel', style: 'cancel', onPress: () => resolve(false) },
-      { text: 'Yes', style: 'destructive', onPress: () => resolve(true) },
-    ]),
-  );
-}
 
 export default function JobPage() {
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -38,33 +24,43 @@ export default function JobPage() {
   const [error, setError] = useState('');
   const [busy, setBusy] = useState('');
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const alive = useRef(true);
   const { width } = useWindowDimensions();
   const desktop = useDesktop();
 
-  const load = useCallback(async () => {
-    try {
-      const r = await api<{ job: Job }>(`/jobs/${id}`);
-      setJob(r.job);
-      setError('');
-      return ACTIVE.includes(r.job.status);
-    } catch (e) {
-      setError(e instanceof Error ? e.message : 'Could not load this job');
-      return false;
-    }
+  /** Loads the job; keeps polling while it runs, and backs off (but keeps trying) when the network drops. */
+  const poll = useCallback(() => {
+    if (timer.current) clearTimeout(timer.current);
+    let failures = 0;
+    const tick = async () => {
+      let again = false;
+      try {
+        const r = await api<{ job: Job }>(`/jobs/${id}`);
+        if (!alive.current) return;
+        setJob(r.job);
+        setError('');
+        failures = 0;
+        again = ACTIVE.includes(r.job.status);
+      } catch (e) {
+        if (!alive.current) return;
+        setError(e instanceof Error ? e.message : 'Could not load this project');
+        failures++;
+        // A missing job will not come back; anything else (network, server restart) might
+        again = !(e && typeof e === 'object' && 'status' in e && (e as { status: number }).status === 404) && failures < 20;
+      }
+      if (again && alive.current) timer.current = setTimeout(tick, failures ? Math.min(15000, 1500 * 2 ** failures) : 1500);
+    };
+    void tick();
   }, [id]);
 
   useEffect(() => {
-    let alive = true;
-    const tick = async () => {
-      const running = await load();
-      if (alive && running) timer.current = setTimeout(tick, 1500);
-    };
-    void tick();
+    alive.current = true;
+    poll();
     return () => {
-      alive = false;
+      alive.current = false;
       if (timer.current) clearTimeout(timer.current);
     };
-  }, [load]);
+  }, [poll]);
 
   const act = async (name: string, fn: () => Promise<void>) => {
     setBusy(name);
@@ -77,155 +73,216 @@ export default function JobPage() {
     }
   };
 
-  const restartPolling = () => {
-    if (timer.current) clearTimeout(timer.current);
-    const tick = async () => {
-      if (await load()) timer.current = setTimeout(tick, 1500);
-    };
-    void tick();
-  };
-
   if (!job) {
     return (
-      <Screen title="Clips" right={<BackButton />}>
-        {error ? <Notice tone="danger">{error}</Notice> : <Spinner />}
+      <Screen title="Project" right={<BackButton />} wide>
+        {error ? (
+          <Notice tone="danger">{error}</Notice>
+        ) : (
+          <View style={{ gap: space.lg }}>
+            <Skeleton style={{ height: 180, borderRadius: radius.xl }} />
+            <View style={{ flexDirection: 'row', gap: space.md }}>
+              {[0, 1, 2, 3].map((i) => (
+                <Skeleton key={i} style={{ flex: 1, height: 320, borderRadius: radius.lg }} />
+              ))}
+            </View>
+          </View>
+        )}
       </Screen>
     );
   }
 
   const running = ACTIVE.includes(job.status);
+  const ai = job.options.mode === 'ai';
   const step = ORDER.indexOf(job.status);
   const aspect = job.options.aspect;
+  const steps = ai
+    ? ['Send to AI', 'Find viral moments', 'Save clips', 'Ready']
+    : job.options.mode === 'highlights'
+      ? ['Download', 'Find best moments', 'Render', 'Ready']
+      : ['Download', 'Read video', 'Render', 'Ready'];
   // Grid: tall phone clips sit several to a row; wide desktop clips get more room
-  const content = Math.min(desktop ? width - 236 : width, 1240) - space.lg * 2;
-  const target = aspect === 'desktop' ? 420 : aspect === 'original' ? 360 : 260;
-  const cols = Math.max(1, Math.floor((content + space.md) / (target + space.md)));
-  const cardW = Math.floor((content - space.md * (cols - 1)) / cols);
-  const slug = job.title.replace(/[^\w\s-]/g, '').trim().replace(/\s+/g, '-').slice(0, 60).toLowerCase() || 'video';
+  // This page has no side rail; the page pads 40 px a side on desktop
+  const content = Math.min(desktop ? width - 80 : width - space.lg * 2, 1320 - 80);
+  const tall = ai || aspect === 'phone' || aspect === 'portrait';
+  const target = tall ? 250 : aspect === 'desktop' ? 400 : 320;
+  const cols = Math.max(desktop ? 2 : 1, Math.floor((content + space.lg) / (target + space.lg)));
+  const cardW = Math.floor((content - space.lg * (cols - 1)) / cols);
+  const slug = slugOf(job.title);
+  const clips = ai ? [...job.clips].sort((a, b) => (b.score ?? 0) - (a.score ?? 0)) : job.clips;
+  const cover = job.cover ? mediaUrl(job.cover) : null;
 
   const reclip = (to: Aspect) =>
     act('reclip', async () => {
-      const r = await api<{ job: Job }>(`/jobs/${job.id}/reclip`, { body: { options: { ...job.options, aspect: to } } });
+      const r = await api<{ job: Job }>(`/jobs/${job.id}/reclip`, { body: { options: { ...job.options, mode: ai ? 'highlights' : job.options.mode, aspect: to } } });
       router.replace(`/job/${r.job.id}`);
     });
 
   return (
-    <Screen title={job.title} subtitle={[job.uploader, job.sourceDuration ? clock(job.sourceDuration) : null, job.sourceKind === 'UPLOAD' ? 'Uploaded file' : null].filter(Boolean).join(' · ')} right={<BackButton />} wide>
-      <Card>
-        <View style={styles.statusRow}>
-          <StatusPill status={job.status} />
-          <Text variant="bodySm" color={colors.textMuted} style={{ flex: 1 }}>
-            {job.status === 'DONE' ? `${job.clips.length} clips · ${bytes(job.totalBytes)}` : (job.stage ?? 'Waiting in line')}
-          </Text>
-          {job.sourceUrl ? (
-            <Pressable onPress={() => void Linking.openURL(job.sourceUrl!)} hitSlop={8} accessibilityLabel="Open the original video">
-              <Ionicons name="open-outline" size={20} color={colors.textMuted} />
-            </Pressable>
-          ) : null}
-        </View>
-        {running ? (
-          <>
-            <ProgressBar value={job.progress} />
-            <View style={styles.steps}>
-              {STEPS.map((s, i) => {
-                const done = step > i + 1 || job.status === 'DONE';
-                const now = step === i + 1;
-                return (
-                  <View key={s.key} style={styles.step}>
-                    <Ionicons name={done ? 'checkmark-circle' : now ? 'ellipse' : 'ellipse-outline'} size={16} color={done ? colors.success : now ? colors.brand : colors.textDim} />
-                    <Text variant="label" color={now ? colors.text : colors.textMuted} style={now ? { fontFamily: fonts.semibold } : undefined}>
-                      {s.label}
-                    </Text>
-                  </View>
-                );
-              })}
+    <Screen hideHeader wide>
+      <View style={styles.topBar}>
+        <BackButton />
+        <Text variant="label" color={colors.textMuted}>
+          Projects / <Text variant="label">{job.title.slice(0, 48)}</Text>
+        </Text>
+      </View>
+
+      {/* ── Header ── */}
+      <View style={[styles.header, !desktop && { flexDirection: 'column' }]}>
+        <Glow color={ai ? colors.brand : '#C8FF2E'} size={520} opacity={0.18} style={{ top: -260, left: -120 }} />
+        <View style={[styles.cover, !desktop && { width: '100%' }]}>
+          {cover ? <Image source={{ uri: cover }} style={StyleSheet.absoluteFill} resizeMode="cover" /> : <Ionicons name="film-outline" size={30} color={colors.textDim} />}
+          <LinearGradient colors={['transparent', 'rgba(0,0,0,0.6)']} style={StyleSheet.absoluteFill} />
+          {job.sourceDuration ? (
+            <View style={styles.coverDur}>
+              <Text variant="label" color="#FFFFFF" style={{ fontFamily: fonts.semibold }}>
+                {clock(job.sourceDuration)}
+              </Text>
             </View>
-          </>
-        ) : null}
-        {job.status === 'FAILED' && job.error ? <Notice tone="danger">{job.error}</Notice> : null}
-        {error ? <Notice tone="danger">{error}</Notice> : null}
-
-        <View style={styles.actions}>
-          {job.status === 'DONE' && job.clips.length > 1 ? (
-            <Button label="Download all (.zip)" icon="archive-outline" loading={busy === 'zip'} onPress={() => void act('zip', () => saveFile(job.zipUrl, `${slug}-clips.zip`))} />
           ) : null}
-          {running ? (
-            <Button
-              label="Cancel"
-              variant="secondary"
-              icon="stop-circle-outline"
-              loading={busy === 'cancel'}
-              onPress={() => void act('cancel', async () => setJob((await api<{ job: Job }>(`/jobs/${job.id}/cancel`, { method: 'POST' })).job))}
-            />
-          ) : null}
-          {job.status === 'FAILED' || job.status === 'CANCELLED' ? (
-            <Button
-              label="Try again"
-              icon="refresh"
-              loading={busy === 'retry'}
-              onPress={() =>
-                void act('retry', async () => {
-                  setJob((await api<{ job: Job }>(`/jobs/${job.id}/retry`, { method: 'POST' })).job);
-                  restartPolling();
-                })
-              }
-            />
-          ) : null}
-          {job.status === 'DONE' && aspect !== 'desktop' ? <Button label="Make desktop version" variant="secondary" icon="desktop-outline" loading={busy === 'reclip'} onPress={() => void reclip('desktop')} /> : null}
-          {job.status === 'DONE' && aspect !== 'phone' ? <Button label="Make phone version" variant="secondary" icon="phone-portrait-outline" loading={busy === 'reclip'} onPress={() => void reclip('phone')} /> : null}
-          <Button
-            label="Delete"
-            variant="danger"
-            icon="trash-outline"
-            loading={busy === 'delete'}
-            onPress={() =>
-              void act('delete', async () => {
-                if (!(await confirm('Delete this video and all its clips?'))) return;
-                await api(`/jobs/${job.id}`, { method: 'DELETE' });
-                router.replace('/library');
-              })
-            }
-          />
         </View>
-      </Card>
+        <View style={{ flex: 1, gap: space.md, minWidth: 0 }}>
+          <View style={{ flexDirection: 'row', gap: 8, flexWrap: 'wrap', alignItems: 'center' }}>
+            <StatusPill status={job.status} />
+            {ai ? <Badge tone="ai" icon="sparkles">AI · OpusClip</Badge> : <Badge>{{ split: 'Split evenly', highlights: 'Best moments', custom: 'Exact ranges', ai: 'AI' }[job.options.mode]}</Badge>}
+            {!ai ? <Badge>{{ phone: '9:16', desktop: '16:9', square: '1:1', portrait: '4:5', original: 'Original' }[aspect]}</Badge> : null}
+          </View>
+          <Text variant="display" numberOfLines={2} style={{ fontSize: desktop ? 28 : 22, lineHeight: desktop ? 34 : 28 }}>
+            {job.title}
+          </Text>
+          <Text variant="bodySm" color={colors.textMuted}>
+            {[job.uploader, job.sourceKind === 'UPLOAD' ? 'Uploaded file' : null, job.status === 'DONE' ? `${job.clips.length} clips · ${bytes(job.totalBytes)}` : job.stage].filter(Boolean).join(' · ')}
+          </Text>
 
-      {job.clips.length ? (
-        <View style={styles.grid}>
-          {job.clips.map((c) => (
-            <ClipCard
-              key={c.id}
-              clip={c}
-              width={cardW}
-              onDownload={() => void act(`dl${c.id}`, () => saveFile(c.downloadUrl, `${slug}-clip-${String(c.index).padStart(2, '0')}-${TAG[aspect]}.mp4`))}
-              onDelete={() =>
-                void act(`del${c.id}`, async () => {
-                  if (!(await confirm(`Delete clip ${c.index}?`))) return;
-                  setJob((await api<{ job: Job }>(`/jobs/${job.id}/clips/${c.id}`, { method: 'DELETE' })).job);
+          {running ? (
+            <View style={{ gap: 10 }}>
+              <ProgressBar value={job.progress} tone={ai ? 'ai' : 'lime'} height={10} />
+              <View style={styles.steps}>
+                {steps.map((label, i) => {
+                  const done = step > i + 1;
+                  const now = step === i + 1 || (i === 0 && step === 0);
+                  return (
+                    <View key={label} style={styles.step}>
+                      <View style={[styles.stepDot, done && { backgroundColor: colors.success, borderColor: colors.success }, now && { borderColor: ai ? colors.brand : colors.text }]}>
+                        {done ? <Ionicons name="checkmark" size={11} color="#06120B" /> : now ? <View style={[styles.stepNow, { backgroundColor: ai ? colors.brand : colors.text }]} /> : null}
+                      </View>
+                      <Text variant="label" color={now ? colors.text : colors.textMuted} style={now ? { fontFamily: fonts.semibold } : undefined}>
+                        {label}
+                      </Text>
+                    </View>
+                  );
+                })}
+                <Text variant="mono" color={colors.textMuted} style={{ marginLeft: 'auto' }}>
+                  {job.progress}%
+                </Text>
+              </View>
+              {ai ? (
+                <Text variant="label" color={colors.textMuted} style={{ fontFamily: fonts.regular }}>
+                  OpusClip usually needs a few minutes per 10 minutes of video. You can leave this page; the project keeps going.
+                </Text>
+              ) : null}
+            </View>
+          ) : null}
+          {job.status === 'FAILED' && job.error ? <Notice tone="danger">{job.error}</Notice> : null}
+          {error ? <Notice tone="warning">{error}</Notice> : null}
+
+          <View style={styles.actions}>
+            {job.status === 'DONE' && job.clips.length > 1 ? (
+              <Button label="Download all (.zip)" icon="archive-outline" loading={busy === 'zip'} onPress={() => void act('zip', () => saveFile(job.zipUrl, `${slug}-clips.zip`))} />
+            ) : null}
+            {running ? (
+              <Button
+                label="Cancel"
+                variant="secondary"
+                icon="stop-circle-outline"
+                loading={busy === 'cancel'}
+                onPress={() => void act('cancel', async () => setJob((await api<{ job: Job }>(`/jobs/${job.id}/cancel`, { method: 'POST' })).job))}
+              />
+            ) : null}
+            {job.status === 'FAILED' || job.status === 'CANCELLED' ? (
+              <Button
+                label="Try again"
+                icon="refresh"
+                loading={busy === 'retry'}
+                onPress={() =>
+                  void act('retry', async () => {
+                    setJob((await api<{ job: Job }>(`/jobs/${job.id}/retry`, { method: 'POST' })).job);
+                    poll();
+                  })
+                }
+              />
+            ) : null}
+            {job.status === 'DONE' && !ai && aspect !== 'desktop' ? <Button label="Desktop version" variant="secondary" icon="desktop-outline" loading={busy === 'reclip'} onPress={() => void reclip('desktop')} /> : null}
+            {job.status === 'DONE' && !ai && aspect !== 'phone' ? <Button label="Phone version" variant="secondary" icon="phone-portrait-outline" loading={busy === 'reclip'} onPress={() => void reclip('phone')} /> : null}
+            {job.sourceUrl ? <IconButton icon="open-outline" label="Open the original video" onPress={() => void Linking.openURL(job.sourceUrl!)} /> : null}
+            <IconButton
+              icon="trash-outline"
+              tone="danger"
+              label="Delete project"
+              onPress={() =>
+                void act('delete', async () => {
+                  if (!(await confirm('Delete this project and all its clips?'))) return;
+                  await api(`/jobs/${job.id}`, { method: 'DELETE' });
+                  router.replace('/library');
                 })
               }
             />
+          </View>
+        </View>
+      </View>
+
+      {/* ── Clips ── */}
+      {clips.length ? (
+        <>
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
+            <Text variant="h1">{ai ? 'Ranked by virality' : 'Clips'}</Text>
+            <Badge>{clips.length}</Badge>
+          </View>
+          <View style={styles.grid}>
+            {clips.map((c, i) => (
+              <ClipCard
+                key={c.id}
+                clip={c}
+                width={cardW}
+                rank={ai ? i + 1 : undefined}
+                onOpen={() => router.push(`/clip/${job.id}/${c.id}`)}
+                onDownload={() => void act(`dl${c.id}`, () => saveFile(c.downloadUrl, `${slug}-clip-${String(c.index).padStart(2, '0')}-${ai ? 'ai' : TAG[aspect]}.mp4`))}
+                onDelete={() =>
+                  void act(`del${c.id}`, async () => {
+                    if (!(await confirm(`Delete clip ${c.index}?`))) return;
+                    setJob((await api<{ job: Job }>(`/jobs/${job.id}/clips/${c.id}`, { method: 'DELETE' })).job);
+                  })
+                }
+              />
+            ))}
+          </View>
+        </>
+      ) : running ? (
+        <View style={styles.grid}>
+          {Array.from({ length: Math.min(cols, 4) }, (_, i) => (
+            <Skeleton key={i} style={{ width: cardW, height: tall ? cardW * 1.6 : cardW * 0.7, borderRadius: radius.lg }} />
           ))}
         </View>
-      ) : !running && job.status === 'DONE' ? (
-        <Empty icon="film-outline" title="No clips left" hint="All clips of this video were deleted." />
+      ) : job.status === 'DONE' ? (
+        <Empty icon="film-outline" title="No clips left" hint="All clips of this project were deleted." />
       ) : null}
     </Screen>
   );
 }
 
 function BackButton() {
-  return (
-    <Pressable onPress={() => (router.canGoBack() ? router.back() : router.replace('/library'))} style={styles.back} accessibilityLabel="Back">
-      <Ionicons name="arrow-back" size={20} color={colors.text} />
-    </Pressable>
-  );
+  return <IconButton icon="arrow-back" label="Back" onPress={() => (router.canGoBack() ? router.back() : router.replace('/library'))} />;
 }
 
 const styles = StyleSheet.create({
-  statusRow: { flexDirection: 'row', alignItems: 'center', gap: space.sm },
-  steps: { flexDirection: 'row', gap: space.lg, flexWrap: 'wrap' },
-  step: { flexDirection: 'row', alignItems: 'center', gap: 5 },
-  actions: { flexDirection: 'row', flexWrap: 'wrap', gap: space.sm },
-  grid: { flexDirection: 'row', flexWrap: 'wrap', gap: space.md, alignItems: 'flex-start' },
-  back: { width: 42, height: 42, borderRadius: 21, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.surfaceAlt },
+  topBar: { flexDirection: 'row', alignItems: 'center', gap: space.md },
+  header: { flexDirection: 'row', gap: space.xl, padding: space.xl, borderRadius: radius.xxl, backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.border, overflow: 'hidden' },
+  cover: { width: 320, aspectRatio: 16 / 9, borderRadius: radius.lg, overflow: 'hidden', backgroundColor: colors.surfaceHigh, alignItems: 'center', justifyContent: 'center', alignSelf: 'flex-start' },
+  coverDur: { position: 'absolute', right: 8, bottom: 8, backgroundColor: 'rgba(0,0,0,0.65)', paddingHorizontal: 7, paddingVertical: 2, borderRadius: 6 },
+  steps: { flexDirection: 'row', gap: space.lg, flexWrap: 'wrap', alignItems: 'center' },
+  step: { flexDirection: 'row', alignItems: 'center', gap: 6 },
+  stepDot: { width: 18, height: 18, borderRadius: 9, borderWidth: 1.5, borderColor: colors.borderStrong, alignItems: 'center', justifyContent: 'center' },
+  stepNow: { width: 8, height: 8, borderRadius: 4 },
+  actions: { flexDirection: 'row', flexWrap: 'wrap', gap: space.sm, alignItems: 'center' },
+  grid: { flexDirection: 'row', flexWrap: 'wrap', gap: space.lg, alignItems: 'flex-start' },
 });

@@ -34,7 +34,8 @@ services:
       JWT_SECRET: ${JWT_SECRET:?set JWT_SECRET in deploy/.env}
       JWT_EXPIRES_IN: ${JWT_EXPIRES_IN:-7d}
       CORS_ORIGIN: ${CORS_ORIGIN:-*}
-      TRUST_PROXY: 1
+      # Proxies in front of the API: 1 = Caddy only; 2 = Cloudflare → Caddy (see docs/CLOUDFLARE.md)
+      TRUST_PROXY: ${TRUST_PROXY:-1}
       ALLOW_SIGNUP: ${ALLOW_SIGNUP:-true}
       STORAGE_DIR: /app/storage
       MAX_UPLOAD_MB: ${MAX_UPLOAD_MB:-2048}
@@ -46,6 +47,9 @@ services:
       X264_CRF: ${X264_CRF:-22}
       YOUTUBE_API_KEY: ${YOUTUBE_API_KEY:-}
       TRENDING_REGION: ${TRENDING_REGION:-US}
+      # AI clips (OpusClip): keep the key in deploy/.env only
+      OPUSCLIP_API_KEY: ${OPUSCLIP_API_KEY:-}
+      OPUSCLIP_TIMEOUT_MINUTES: ${OPUSCLIP_TIMEOUT_MINUTES:-120}
       API_RATE_LIMIT: ${API_RATE_LIMIT:-600}
       LOGIN_RATE_LIMIT: ${LOGIN_RATE_LIMIT:-30}
     volumes:

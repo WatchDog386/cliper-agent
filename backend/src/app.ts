@@ -16,6 +16,10 @@ import { mediaRouter } from './modules/media/media.routes';
 import { sourceRouter } from './modules/source/source.routes';
 import { discoverRouter } from './modules/discover/discover.routes';
 import { queueStats } from './clipper/queue';
+import { opusEnabled } from './clipper/opus';
+import { aiRouter } from './modules/ai/ai.routes';
+import { adminRouter } from './modules/admin/admin.routes';
+import { requireRole } from './middleware/auth';
 
 export function createApp() {
   const app = express();
@@ -80,6 +84,7 @@ export function createApp() {
       allowSignup: env.ALLOW_SIGNUP,
       limits: { maxSourceMinutes: env.MAX_SOURCE_MINUTES, maxClipsPerJob: env.MAX_CLIPS_PER_JOB, maxUploadMb: env.MAX_UPLOAD_MB },
       discover: env.YOUTUBE_API_KEY ? 'youtube-trending' : 'search',
+      ai: opusEnabled(),
     });
   });
   /** Tool versions and queue load (Settings → Server). */
@@ -87,7 +92,7 @@ export function createApp() {
     '/system',
     requireAuth,
     ah(async (_req, res) => {
-      res.json({ tools: await checkTools(), queue: queueStats() });
+      res.json({ tools: await checkTools(), queue: queueStats(), ai: { enabled: opusEnabled() } });
     }),
   );
 
@@ -95,6 +100,8 @@ export function createApp() {
   api.use('/jobs', requireAuth, jobsRouter);
   api.use('/source', requireAuth, sourceRouter);
   api.use('/discover', requireAuth, discoverRouter);
+  api.use('/ai', requireAuth, aiRouter);
+  api.use('/admin', requireAuth, requireRole(['ADMIN']), adminRouter);
   app.use('/api/v1', api);
 
   app.use(notFoundHandler);

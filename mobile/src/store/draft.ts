@@ -13,6 +13,9 @@ export const DEFAULT_OPTIONS: ClipOptions = {
   fade: false,
   mute: false,
   speed: 1,
+  aiModel: 'ClipAnything',
+  aiDuration: 'auto',
+  aiHook: false,
 };
 
 const KEY = 'cliper.defaults';
@@ -29,6 +32,8 @@ function saved(): ClipOptions {
 /** The link waiting to be clipped (e.g. picked in Discover) and the last-used settings. */
 interface DraftState {
   url: string;
+  /** Bumped on every setUrl, so picking the same video twice still reaches the Create page. */
+  nonce: number;
   title?: string;
   thumbnail?: string;
   options: ClipOptions;
@@ -39,13 +44,14 @@ interface DraftState {
 
 export const useDraft = create<DraftState>((set, get) => ({
   url: '',
+  nonce: 0,
   options: saved(),
-  setUrl: (url, extra) => set({ url, title: extra?.title, thumbnail: extra?.thumbnail }),
+  setUrl: (url, extra) => set({ url, title: extra?.title, thumbnail: extra?.thumbnail, nonce: get().nonce + 1 }),
   setOptions: (patch) => set({ options: { ...get().options, ...patch } }),
   /** Keep this device's last settings (not the trim) as the starting point next time. */
   remember: () => {
     try {
-      const { startAt: _s, endAt: _e, ranges: _r, ...rest } = get().options;
+      const { startAt: _s, endAt: _e, ranges: _r, aiPrompt: _p, ...rest } = get().options;
       localStorage.setItem(KEY, JSON.stringify(rest));
     } catch {
       /* native or private mode */

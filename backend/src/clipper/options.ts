@@ -12,11 +12,21 @@ import { z } from 'zod';
  *                   blur  – whole picture on a blurred copy of itself
  *                   pad   – whole picture with black bars
  *   focus           which part of the picture to keep when cropping: start (left/top), center, end (right/bottom)
+ *
+ * AI mode ("ai") hands the video to OpusClip (needs OPUSCLIP_API_KEY): it finds the hooks, writes a
+ * headline, caption and hashtags per clip, adds animated captions from the brand template and scores
+ * each clip's virality. The clips come back as OpusClip renders them (vertical, captioned).
+ *   aiModel         ClipBasic (talking videos) · ClipAnything (any video, follows aiPrompt)
+ *   aiDuration      auto · short (<30 s) · medium (30–60 s) · long (60–90 s) · xl (90 s–3 min)
+ *   aiPrompt        what to look for, e.g. "funny moments" (ClipAnything) / topic keywords (ClipBasic)
+ *   aiTemplateId    an OpusClip brand template id (empty: the account's default)
+ *   aiHook          add an AI headline over the first seconds
  */
 
 export const ASPECTS = ['phone', 'desktop', 'square', 'portrait', 'original'] as const;
 export const FITS = ['crop', 'blur', 'pad'] as const;
-export const MODES = ['split', 'highlights', 'custom'] as const;
+export const MODES = ['split', 'highlights', 'custom', 'ai'] as const;
+export const AI_DURATIONS = ['auto', 'short', 'medium', 'long', 'xl'] as const;
 
 export type Aspect = (typeof ASPECTS)[number];
 export type Fit = (typeof FITS)[number];
@@ -44,6 +54,12 @@ export const optionsSchema = z
     mute: z.boolean().default(false),
     /** Playback speed of the clip (0.5–2×). */
     speed: z.number().min(0.5).max(2).default(1),
+    aiModel: z.enum(['ClipBasic', 'ClipAnything']).default('ClipAnything'),
+    aiDuration: z.enum(AI_DURATIONS).default('auto'),
+    aiPrompt: z.string().trim().max(300).optional(),
+    aiTemplateId: z.string().trim().max(120).optional(),
+    aiHook: z.boolean().default(false),
+    aiLanguage: z.string().trim().max(8).optional(),
   })
   .refine((o) => o.endAt === undefined || o.startAt === undefined || o.endAt > o.startAt, { message: 'End must be after start', path: ['endAt'] })
   .refine((o) => o.mode !== 'custom' || (o.ranges?.length ?? 0) > 0, { message: 'Add at least one time range', path: ['ranges'] });

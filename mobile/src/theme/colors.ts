@@ -1,102 +1,90 @@
 /**
- * Cliper Agent — the template's "glass" look: soft page, frosted cards with hairline edges, ink actions,
- * a bright highlight for active states. Rebranded with a coral "record" accent. Dark by default (video
- * looks best on dark); Light can be chosen in Settings.
+ * Cliper Agent "Neon Studio": near-black canvas, layered graphite surfaces with hairline edges, an
+ * electric-lime action colour and a violet → pink glow for AI. Modelled on the best short-form
+ * clipping studios: content first, dark so video pops, one loud colour for the thing to press.
+ * Dark by default; Light can be chosen in Settings (web).
  */
-const light = {
-  bg: '#FFFFFF',
-  surface: '#FFFFFF',
-  surfaceAlt: '#F0F1F5',
-  surfaceHigh: '#E6E8EF',
-  border: '#E6E8EF',
-  borderStrong: '#CDD1DC',
+const dark = {
+  bg: '#07070A',
+  bgTop: '#07070A',
+  bgBottom: '#07070A',
+  surface: '#0F0F14',
+  surfaceAlt: '#16161D',
+  surfaceHigh: '#20202A',
+  glass: 'rgba(22,22,29,0.72)',
+  glassStrong: 'rgba(18,18,24,0.92)',
+  glassBorder: 'rgba(255,255,255,0.07)',
+  border: 'rgba(255,255,255,0.07)',
+  borderStrong: 'rgba(255,255,255,0.14)',
 
-  primary: '#15161A',
-  primaryPressed: '#000000',
-  onPrimary: '#FFFFFF',
-  primarySoft: 'rgba(21,22,26,0.06)',
+  /** The one action colour: electric lime with ink text. */
+  highlight: '#C8FF2E',
+  highlightPressed: '#B4EB1A',
+  onHighlight: '#0A0B05',
 
-  highlight: '#ECF23A',
-  onHighlight: '#15161A',
+  primary: '#FFFFFF',
+  onPrimary: '#07070A',
 
-  glass: '#FFFFFF',
-  glassStrong: '#FFFFFF',
-  glassBorder: 'rgba(15,23,42,0.07)',
-  hatch: 'rgba(21,22,26,0.13)',
-  bgTop: '#F6F7FB',
-  bgBottom: '#F6F7FB',
-
-  /** Coral "record" accent */
-  brand: '#FF4D5E',
+  /** AI / brand: violet into pink. */
+  brand: '#9B6BFF',
+  brandSoft: 'rgba(155,107,255,0.16)',
   onBrand: '#FFFFFF',
-  brandSoft: '#FFE8EB',
-  accent: '#6D5BFF',
-  accentSoft: '#ECE9FF',
+  accent: '#FF4FA3',
+  accentSoft: 'rgba(255,79,163,0.16)',
+  cyan: '#38E1FF',
 
-  text: '#15161A',
-  textMuted: '#5D6170',
-  textDim: '#8D92A1',
+  text: '#F5F5F7',
+  textMuted: 'rgba(245,245,247,0.66)',
+  textDim: 'rgba(245,245,247,0.40)',
 
-  success: '#16A34A',
-  successSoft: '#DCFCE7',
-  warning: '#D97706',
-  warningSoft: '#FEF3C7',
-  danger: '#DC2626',
-  dangerSoft: '#FEE2E2',
-  info: '#0284C7',
-  infoSoft: '#E0F2FE',
+  success: '#3EE08F',
+  successSoft: 'rgba(62,224,143,0.14)',
+  warning: '#FFB547',
+  warningSoft: 'rgba(255,181,71,0.15)',
+  danger: '#FF5A6A',
+  dangerSoft: 'rgba(255,90,106,0.15)',
+  info: '#5AB8FF',
+  infoSoft: 'rgba(90,184,255,0.15)',
 
-  hero: '#16171C',
+  hero: '#121219',
   onHero: '#FFFFFF',
   onHeroMuted: 'rgba(255,255,255,0.72)',
-  onHeroDim: 'rgba(255,255,255,0.5)',
-  heroInset: 'rgba(255,255,255,0.14)',
-  heroBorder: 'rgba(255,255,255,0.12)',
-
-  overlay: 'rgba(8,9,12,0.7)',
-  scrim: 'rgba(0,0,0,0.45)',
+  overlay: 'rgba(0,0,0,0.72)',
   white: '#FFFFFF',
   black: '#000000',
 };
 
-const dark: typeof light = {
-  ...light,
-  bg: '#0E0F12',
-  surface: '#17181D',
-  surfaceAlt: '#22242B',
-  surfaceHigh: '#2C2F37',
-  border: 'rgba(255,255,255,0.10)',
-  borderStrong: 'rgba(255,255,255,0.22)',
-
-  primary: '#FFFFFF',
-  primaryPressed: '#E5E5E5',
-  onPrimary: '#0E0F12',
-  primarySoft: 'rgba(255,255,255,0.08)',
-
-  highlight: '#E6F03A',
-  onHighlight: '#0E0F12',
-
-  glass: '#17181D',
-  glassStrong: '#1B1D23',
-  glassBorder: 'rgba(255,255,255,0.07)',
-  hatch: 'rgba(255,255,255,0.12)',
-  bgTop: '#0E0F12',
-  bgBottom: '#0E0F12',
-
-  brandSoft: 'rgba(255,77,94,0.16)',
-  accentSoft: 'rgba(109,91,255,0.2)',
-
-  text: '#F4F5F7',
-  textMuted: 'rgba(244,245,247,0.7)',
-  textDim: 'rgba(244,245,247,0.45)',
-
-  successSoft: 'rgba(22,163,74,0.2)',
-  warningSoft: 'rgba(217,119,6,0.22)',
-  dangerSoft: 'rgba(220,38,38,0.22)',
-  infoSoft: 'rgba(2,132,199,0.22)',
-
-  hero: '#1D1F26',
-  overlay: 'rgba(0,0,0,0.75)',
+const light: typeof dark = {
+  ...dark,
+  bg: '#F6F6F9',
+  bgTop: '#F6F6F9',
+  bgBottom: '#F6F6F9',
+  surface: '#FFFFFF',
+  surfaceAlt: '#F0F0F5',
+  surfaceHigh: '#E5E5EE',
+  glass: 'rgba(255,255,255,0.86)',
+  glassStrong: '#FFFFFF',
+  glassBorder: 'rgba(12,12,30,0.08)',
+  border: 'rgba(12,12,30,0.08)',
+  borderStrong: 'rgba(12,12,30,0.16)',
+  highlight: '#0A0A0F',
+  highlightPressed: '#000000',
+  onHighlight: '#C8FF2E',
+  primary: '#0A0A0F',
+  onPrimary: '#FFFFFF',
+  brand: '#7C4DFF',
+  brandSoft: 'rgba(124,77,255,0.10)',
+  accentSoft: 'rgba(255,79,163,0.10)',
+  text: '#0B0B12',
+  textMuted: 'rgba(11,11,18,0.62)',
+  textDim: 'rgba(11,11,18,0.40)',
+  success: '#12A15E',
+  successSoft: 'rgba(18,161,94,0.10)',
+  warning: '#C77700',
+  danger: '#E5334B',
+  dangerSoft: 'rgba(229,51,75,0.10)',
+  info: '#1F7FD1',
+  hero: '#0E0E14',
 };
 
 export type ThemeMode = 'light' | 'dark';
@@ -122,10 +110,14 @@ export function setThemeMode(mode: ThemeMode) {
   if (typeof window !== 'undefined' && typeof window.location?.reload === 'function') window.location.reload();
 }
 
-export const colors: typeof light = isDark ? dark : light;
+export const colors: typeof dark = isDark ? dark : light;
 
 export const gradients = {
-  hero: (isDark ? ['#2A1C3F', '#14151A'] : ['#2C2D33', '#15161A']) as readonly [string, string],
-  brand: ['#FF6B5E', '#FF3D7F'] as const,
-  accent: ['#8B7BFF', '#5B47F5'] as const,
+  /** AI / brand glow. */
+  brand: ['#9B6BFF', '#FF4FA3'] as const,
+  brand3: ['#38E1FF', '#9B6BFF', '#FF4FA3'] as const,
+  lime: ['#E4FF7A', '#C8FF2E'] as const,
+  hero: (isDark ? ['#16121F', '#0B0B10'] : ['#1A1526', '#0E0E14']) as readonly [string, string],
+  /** Over thumbnails, so white text stays readable. */
+  scrim: ['rgba(0,0,0,0)', 'rgba(0,0,0,0.82)'] as const,
 };

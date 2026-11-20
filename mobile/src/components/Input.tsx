@@ -1,7 +1,7 @@
 import { useState, type ComponentRef, type Ref } from 'react';
 import { Platform, StyleSheet, TextInput, View, type StyleProp, type TextInputProps, type TextStyle, type ViewStyle } from 'react-native';
 import Ionicons from '@expo/vector-icons/Ionicons';
-import { colors, fonts, isDark, radius, space } from '../theme';
+import { colors, fonts, radius, space } from '../theme';
 import { Text } from './Text';
 
 interface Props extends TextInputProps {
@@ -16,16 +16,16 @@ interface Props extends TextInputProps {
 /** Material 3 outlined text field with focus and error states. */
 export function Input({ label, icon, error, style, fieldStyle, multiline, onFocus, onBlur, ...rest }: Props) {
   const [focused, setFocused] = useState(false);
-  const borderColor = error ? colors.danger : focused ? colors.brand : colors.borderStrong;
+  const borderColor = error ? colors.danger : focused ? colors.brand : colors.border;
   return (
     <View style={{ gap: 6 }}>
       {label ? (
-        <Text variant="label" color={colors.textMuted} style={{ marginLeft: 4 }}>
+        <Text variant="label" color={colors.textMuted} style={{ marginLeft: 2 }}>
           {label}
         </Text>
       ) : null}
-      <View style={[styles.field, multiline && styles.multi, fieldStyle, { borderColor, borderWidth: 1 }]}>
-        {icon ? <Ionicons name={icon} size={20} color={colors.textDim} /> : null}
+      <View style={[styles.field, multiline && styles.multi, focused && styles.focused, fieldStyle, { borderColor, borderWidth: 1 }]}>
+        {icon ? <Ionicons name={icon} size={19} color={focused ? colors.text : colors.textDim} /> : null}
         <TextInput
           placeholderTextColor={colors.textDim}
           selectionColor={colors.primary}
@@ -65,11 +65,12 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: space.md,
     minHeight: 48,
-    paddingHorizontal: space.lg + 2,
-    borderRadius: radius.pill,
-    backgroundColor: isDark ? colors.surfaceAlt : 'rgba(255,255,255,0.72)',
+    paddingHorizontal: space.lg,
+    borderRadius: radius.md,
+    backgroundColor: colors.surface,
   },
+  focused: { shadowColor: colors.brand, shadowOpacity: 0.35, shadowRadius: 12, shadowOffset: { width: 0, height: 0 } },
   single: { alignSelf: 'stretch' },
   multi: { alignItems: 'flex-start', paddingVertical: space.md, borderRadius: radius.lg },
-  input: { flex: 1, color: colors.text, fontFamily: fonts.regular, fontSize: 14.5, paddingVertical: 0, ...WEB_NO_OUTLINE },
+  input: { flex: 1, color: colors.text, fontFamily: fonts.regular, fontSize: 15, paddingVertical: 0, ...WEB_NO_OUTLINE },
 });

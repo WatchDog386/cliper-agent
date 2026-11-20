@@ -9,7 +9,6 @@ import Ionicons from '@expo/vector-icons/Ionicons';
 import { Button } from '../src/components/Button';
 import { Text } from '../src/components/Text';
 import { colors, isDark } from '../src/theme';
-import { OPENED_ON_DESKTOP } from '../src/theme/desktop';
 import { useAuth } from '../src/store/auth';
 
 SplashScreen.preventAutoHideAsync().catch(() => undefined);
@@ -17,7 +16,7 @@ SplashScreen.preventAutoHideAsync().catch(() => undefined);
 /** Shown instead of a blank screen if a page crashes. */
 export function ErrorBoundary({ error, retry }: { error: Error; retry: () => Promise<void> }) {
   return (
-    <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', padding: 28, gap: 14, backgroundColor: colors.bgTop }}>
+    <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', padding: 28, gap: 14, backgroundColor: colors.bg }}>
       <Ionicons name="warning-outline" size={44} color={colors.text} />
       <Text variant="h2" align="center">
         Something went wrong on this screen
@@ -31,22 +30,14 @@ export function ErrorBoundary({ error, retry }: { error: Error; retry: () => Pro
   );
 }
 
-// Figtree on phones, Inter on a desktop browser (the template's lettering). Web uses small woff2 files.
-const WEB_FONTS = OPENED_ON_DESKTOP
-  ? {
-      AppSans_400Regular: require('@fontsource/inter/files/inter-latin-400-normal.woff2'),
-      AppSans_500Medium: require('@fontsource/inter/files/inter-latin-500-normal.woff2'),
-      AppSans_600SemiBold: require('@fontsource/inter/files/inter-latin-600-normal.woff2'),
-      AppSans_700Bold: require('@fontsource/inter/files/inter-latin-700-normal.woff2'),
-      AppSans_800ExtraBold: require('@fontsource/inter/files/inter-latin-800-normal.woff2'),
-    }
-  : {
-      AppSans_400Regular: require('@fontsource/figtree/files/figtree-latin-400-normal.woff2'),
-      AppSans_500Medium: require('@fontsource/figtree/files/figtree-latin-500-normal.woff2'),
-      AppSans_600SemiBold: require('@fontsource/figtree/files/figtree-latin-600-normal.woff2'),
-      AppSans_700Bold: require('@fontsource/figtree/files/figtree-latin-700-normal.woff2'),
-      AppSans_800ExtraBold: require('@fontsource/figtree/files/figtree-latin-800-normal.woff2'),
-    };
+// Inter everywhere. The web uses small woff2 files bundled with the app (no font CDN round trip).
+const WEB_FONTS = {
+  AppSans_400Regular: require('@fontsource/inter/files/inter-latin-400-normal.woff2'),
+  AppSans_500Medium: require('@fontsource/inter/files/inter-latin-500-normal.woff2'),
+  AppSans_600SemiBold: require('@fontsource/inter/files/inter-latin-600-normal.woff2'),
+  AppSans_700Bold: require('@fontsource/inter/files/inter-latin-700-normal.woff2'),
+  AppSans_800ExtraBold: require('@fontsource/inter/files/inter-latin-800-normal.woff2'),
+};
 
 function nativeFonts() {
   const f = require('@expo-google-fonts/figtree');
@@ -59,7 +50,7 @@ function nativeFonts() {
   };
 }
 
-/** Fonts never keep the app from opening: after a few seconds it opens with the system font. */
+/** Fonts never keep the app from opening: after a moment it opens with the system font. */
 function useAppFonts() {
   const [ready, setReady] = useState(false);
   useEffect(() => {
@@ -70,7 +61,8 @@ function useAppFonts() {
         setReady(true);
       }
     };
-    const giveUp = setTimeout(finish, 5000);
+    // Never hold the first paint for long: after 1.5 s the app opens and the fonts swap in
+    const giveUp = setTimeout(finish, 1500);
     Font.loadAsync(Platform.OS === 'web' ? WEB_FONTS : nativeFonts())
       .catch(() => undefined)
       .finally(finish);
@@ -104,7 +96,7 @@ export default function RootLayout() {
   return (
     <SafeAreaProvider>
       <StatusBar style={isDark ? 'light' : 'dark'} />
-      {ready ? <Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: colors.bgTop }, animation: 'slide_from_right' }} /> : null}
+      {ready ? <Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: colors.bg }, animation: 'fade_from_bottom' }} /> : null}
     </SafeAreaProvider>
   );
 }

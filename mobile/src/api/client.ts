@@ -5,6 +5,9 @@ import { useAuth } from '../store/auth';
 /** API base URL: EXPO_PUBLIC_API_URL, else app.json `extra.apiUrl`. "/api/v1" means the same site (production web). */
 export const API_URL: string = process.env.EXPO_PUBLIC_API_URL ?? (Constants.expoConfig?.extra?.apiUrl as string | undefined) ?? 'http://localhost:4000/api/v1';
 
+/** Demo build (EXPO_PUBLIC_DEMO=1): no server, sample projects in memory. Used for hosted previews. */
+export const DEMO = process.env.EXPO_PUBLIC_DEMO === '1';
+
 export class ApiError extends Error {
   constructor(
     public status: number,
@@ -17,6 +20,7 @@ export class ApiError extends Error {
 
 /** A path from the API ("/media/…") as a full address players and downloads can open. */
 export function mediaUrl(path: string) {
+  if (/^(data:|https?:|blob:)/.test(path)) return path;
   const base = API_URL.startsWith('/') && Platform.OS === 'web' && typeof window !== 'undefined' ? `${window.location.origin}${API_URL}` : API_URL;
   return `${base}${path}`;
 }
@@ -24,6 +28,7 @@ export function mediaUrl(path: string) {
 type Body = Record<string, unknown> | FormData | undefined;
 
 export async function api<T>(path: string, options: { method?: string; body?: Body } = {}): Promise<T> {
+  if (DEMO) return (await import('./demo')).demoApi<T>(path, options);
   const token = useAuth.getState().token;
   const isForm = typeof FormData !== 'undefined' && options.body instanceof FormData;
   let res: Response;
@@ -55,6 +60,7 @@ export async function api<T>(path: string, options: { method?: string; body?: Bo
  * { uri, name, type } object.
  */
 export function uploadVideo<T>(path: string, form: FormData, onProgress: (fraction: number) => void): Promise<T> {
+  if (DEMO) return import('./demo').then((d) => d.demoUpload<T>(onProgress));
   const token = useAuth.getState().token;
   return new Promise((resolve, reject) => {
     const xhr = new XMLHttpRequest();

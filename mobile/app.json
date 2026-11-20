@@ -6,10 +6,10 @@
     "version": "1.0.0",
     "orientation": "default",
     "userInterfaceStyle": "dark",
-    "backgroundColor": "#0E0F12",
+    "backgroundColor": "#07070A",
     "icon": "./assets/icon.png",
     "splash": {
-      "backgroundColor": "#0E0F12"
+      "backgroundColor": "#07070A"
     },
     "ios": {
       "bundleIdentifier": "com.cliperagent.app",
@@ -19,7 +19,7 @@
       "package": "com.cliperagent.app",
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
-        "backgroundColor": "#0E0F12"
+        "backgroundColor": "#07070A"
       },
       "permissions": []
     },
@@ -49,8 +49,8 @@
       "favicon": "./public/favicon.png",
       "name": "Cliper Agent",
       "shortName": "Cliper",
-      "themeColor": "#0E0F12",
-      "backgroundColor": "#0E0F12"
+      "themeColor": "#07070A",
+      "backgroundColor": "#07070A"
     }
   }
 }

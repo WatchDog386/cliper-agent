@@ -58,6 +58,25 @@ Everything has a default except `ranges` in custom mode.
 | POST | `/jobs/:id/retry` | Re-run a failed / cancelled job |
 | POST | `/jobs/:id/reclip` | `{ options }` → `201 { job }`: a new job from the same source |
 | DELETE | `/jobs/:id` | `204`. Removes the job and its files |
+
+AI mode (`"mode": "ai"`, needs `OPUSCLIP_API_KEY`) adds these options: `aiModel` (`ClipAnything` | `ClipBasic`),
+`aiDuration` (`auto` | `short` | `medium` | `long` | `xl`), `aiPrompt`, `aiTemplateId`, `aiHook`, `aiLanguage`.
+AI clips carry `title`, `description` and `hashtags`, and `score` is OpusClip's virality score (0–100).
+`/config` reports `ai: true|false`. Uploads with `mode: "ai"` are refused (`AI_NEEDS_LINK`), and so is AI mode without a key (`AI_DISABLED`).
+
+## AI engine
+
+| Method | Path | |
+|---|---|---|
+| GET | `/ai/status` | `{ enabled, ok, provider: "OpusClip", templates: [{ id, name, isDefault }], message? }` (cached for a minute) |
+
+## Admin (role `ADMIN`)
+
+| Method | Path | |
+|---|---|---|
+| GET | `/admin/users` | `{ users: [{ id, email, name, role, active, jobs, clips, createdAt }] }` |
+| GET | `/admin/stats` | `{ users, jobs, clips, bytes, failed, running }` |
+| PATCH | `/admin/users/:id` | `{ active?, role?, password? }`. Deactivating or resetting the password signs the person out everywhere; admins cannot deactivate or demote themselves |
 | DELETE | `/jobs/:id/clips/:clipId` | Remove one clip → `{ job }` |
 
 A job:

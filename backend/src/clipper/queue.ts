@@ -9,6 +9,7 @@ import { loudnessPerSecond, probe, renderClip, thumbnail } from './media';
 import { optionsSchema } from './options';
 import { planSegments } from './plan';
 import { downloadSource, fetchMeta, ytdlpReason } from './source';
+import { createProject, downloadClip, OpusError, waitForClips } from './opus';
 
 /*
  * The job queue. The database is the queue: a job waits as QUEUED, is claimed atomically, and moves
@@ -20,11 +21,14 @@ const running = new Map<string, AbortController>();
 let timer: ReturnType<typeof setInterval> | null = null;
 let ticking = false;
 let stopping = false;
+/** Only a started queue claims jobs (tests and one-off scripts call processJob themselves). */
+let started = false;
 
 const ACTIVE: JobStatus[] = [JobStatus.FETCHING, JobStatus.ANALYZING, JobStatus.RENDERING];
 
 export function startQueue() {
   if (env.NODE_ENV === 'test') return;
+  started = true;
   stopping = false;
   void prisma.clipJob
     .updateMany({ where: { status: { in: ACTIVE } }, data: { status: JobStatus.QUEUED, progress: 0, stage: 'Waiting (the server restarted)' } })
@@ -51,7 +55,7 @@ export const abortJob = (id: string) => running.get(id)?.abort();
 export const queueStats = () => ({ running: running.size, concurrency: env.CLIP_CONCURRENCY });
 
 async function tick() {
-  if (ticking || stopping) return;
+  if (ticking || stopping || !started) return;
   ticking = true;
   try {
     while (running.size < env.CLIP_CONCURRENCY && !stopping) {
@@ -111,6 +115,11 @@ export async function processJob(id: string, signal: AbortSignal) {
     await prisma.clip.deleteMany({ where: { jobId: id } });
     await fs.promises.mkdir(dir, { recursive: true });
     for (const f of await fs.promises.readdir(dir)) if (/^clip-\d+\.(mp4|jpg)$/.test(f)) await fs.promises.rm(path.join(dir, f), { force: true });
+
+    if (o.mode === 'ai') {
+      await processAiJob(id, job, o, report, soft, signal);
+      return;
+    }
 
     // ── 1. Source ──
     const fetchShare = job.sourceKind === 'URL' ? 35 : 3;
@@ -197,7 +206,83 @@ export async function processJob(id: string, signal: AbortSignal) {
   }
 }
 
+/**
+ * AI clips: OpusClip finds the viral moments, renders captioned vertical clips and writes a headline,
+ * caption and hashtags for each. We keep a copy of every clip (so downloads, the zip and retention work
+ * like any other job) plus a thumbnail.
+ */
+async function processAiJob(
+  id: string,
+  job: { sourceKind: string; sourceUrl: string | null; title: string | null; externalId: string | null },
+  o: ReturnType<typeof optionsSchema.parse>,
+  report: ReturnType<typeof reporter>,
+  soft: (status: JobStatus, pct: number, stage: string) => void,
+  signal: AbortSignal,
+) {
+  if (job.sourceKind !== 'URL' || !job.sourceUrl) throw new Error('AI clips need a video link (uploads are clipped with the other modes)');
+  const dir = jobDir(id);
+  // A retry of a project that OpusClip already finished re-uses it instead of paying again
+  let projectId = job.externalId;
+  if (!projectId) {
+    await report(JobStatus.FETCHING, 2, 'Sending the video to OpusClip AI', true);
+    projectId = await createProject(job.sourceUrl, o, job.title, signal);
+    await prisma.clipJob.update({ where: { id }, data: { externalId: projectId } });
+  }
+  await report(JobStatus.ANALYZING, 5, 'AI is watching the video for viral moments', true);
+  const clips = await waitForClips(
+    projectId,
+    ({ elapsedMin, percent, detail }) => {
+      // Without a reported percentage, creep towards 70% over about 30 minutes
+      const pct = percent !== undefined ? 5 + percent * 0.65 : 5 + 65 * (1 - Math.exp(-elapsedMin / 12));
+      const step = detail && !/^\s*$/.test(detail) ? ` · ${detail.toLowerCase()}` : '';
+      soft(JobStatus.ANALYZING, pct, `AI is finding viral moments${step} · ${Math.max(1, Math.round(elapsedMin))} min`);
+    },
+    signal,
+  );
+  const picked = clips.sort((a, b) => (b.score ?? 0) - (a.score ?? 0)).slice(0, Math.min(o.maxClips, env.MAX_CLIPS_PER_JOB));
+  // Best first: clip 1 is the highest-scoring one
+  const each = 29 / picked.length;
+  for (let i = 0; i < picked.length; i++) {
+    const c = picked[i]!;
+    const n = String(i + 1).padStart(2, '0');
+    await report(JobStatus.RENDERING, 70 + i * each, `Saving AI clip ${i + 1} of ${picked.length}`, true);
+    const out = path.join(dir, `clip-${n}.mp4`);
+    await downloadClip(c.url, out, signal);
+    const info = await probe(out, signal);
+    const size = (await fs.promises.stat(out)).size;
+    const thumb = path.join(dir, `clip-${n}.jpg`);
+    const hasThumb = await thumbnail(out, info.duration, thumb, signal).then(
+      () => true,
+      () => false,
+    );
+    const start = c.startSec ?? 0;
+    await prisma.clip.create({
+      data: {
+        jobId: id,
+        index: i + 1,
+        startSec: start,
+        endSec: c.endSec ?? start + info.duration,
+        duration: info.duration,
+        width: info.width,
+        height: info.height,
+        sizeBytes: size,
+        score: c.score,
+        title: c.title?.slice(0, 300) ?? null,
+        description: c.description?.slice(0, 4000) ?? null,
+        hashtags: c.hashtags?.slice(0, 1000) ?? null,
+        file: toStored(out),
+        thumb: hasThumb ? toStored(thumb) : null,
+      },
+    });
+  }
+  await prisma.clipJob.update({
+    where: { id },
+    data: { status: JobStatus.DONE, progress: 100, stage: `${picked.length} AI clip${picked.length === 1 ? '' : 's'} ready`, finishedAt: new Date() },
+  });
+}
+
 function friendly(err: unknown): string {
+  if (err instanceof OpusError) return err.message;
   if (err instanceof ToolError) {
     if (/Could not start/.test(err.message)) return `${err.message}. The video tools are not installed on the server (see README → Video tools).`;
     if (/yt-dlp/i.test(err.message)) return ytdlpReason(err);

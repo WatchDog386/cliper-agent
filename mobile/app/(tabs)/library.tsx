@@ -1,14 +1,14 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
-import { Image, StyleSheet, View } from 'react-native';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { StyleSheet, View } from 'react-native';
 import { router, useFocusEffect } from 'expo-router';
-import Ionicons from '@expo/vector-icons/Ionicons';
 import { Button } from '../../src/components/Button';
-import { Text } from '../../src/components/Text';
-import { Card, Chips, Empty, Notice, ProgressBar, Screen, Spinner, StatusPill } from '../../src/components/ui';
-import { api, mediaUrl } from '../../src/api/client';
+import { Input } from '../../src/components/Input';
+import { Segmented } from '../../src/components/Segmented';
+import { ProjectCard } from '../../src/components/ProjectCard';
+import { Empty, Notice, Screen, Skeleton } from '../../src/components/ui';
+import { api } from '../../src/api/client';
 import { ACTIVE, type Job } from '../../src/api/types';
-import { colors, fonts, radius, space } from '../../src/theme';
-import { ago, clock } from '../../src/utils/format';
+import { radius, space } from '../../src/theme';
 
 type Filter = 'all' | 'active' | 'done' | 'failed';
 interface Stats {
@@ -18,13 +18,12 @@ interface Stats {
   clips: number;
 }
 
-const VIEW: Record<string, string> = { phone: '9:16', desktop: '16:9', square: '1:1', portrait: '4:5', original: 'Original' };
-
 export default function Library() {
   const [filter, setFilter] = useState<Filter>('all');
   const [jobs, setJobs] = useState<Job[] | null>(null);
   const [stats, setStats] = useState<Stats | null>(null);
   const [error, setError] = useState('');
+  const [q, setQ] = useState('');
   const [refreshing, setRefreshing] = useState(false);
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -36,8 +35,9 @@ export default function Library() {
       setError('');
       return r.jobs.some((j) => ACTIVE.includes(j.status));
     } catch (e) {
-      setError(e instanceof Error ? e.message : 'Could not load your clips');
-      return false;
+      setError(e instanceof Error ? e.message : 'Could not load your projects');
+      // Keep trying: a dropped connection should not freeze the list
+      return true;
     }
   }, [filter]);
 
@@ -47,7 +47,7 @@ export default function Library() {
       let alive = true;
       const tick = async () => {
         const busy = await load();
-        if (alive) timer.current = setTimeout(tick, busy ? 2000 : 10000);
+        if (alive) timer.current = setTimeout(tick, busy ? 2500 : 12000);
       };
       void tick();
       return () => {
@@ -59,78 +59,60 @@ export default function Library() {
 
   useEffect(() => setJobs(null), [filter]);
 
+  const shown = useMemo(() => {
+    const term = q.trim().toLowerCase();
+    if (!jobs || !term) return jobs;
+    return jobs.filter((j) => `${j.title} ${j.uploader ?? ''}`.toLowerCase().includes(term));
+  }, [jobs, q]);
+
   return (
     <Screen
-      title="My clips"
-      subtitle={stats ? `${stats.clips} clips from ${stats.total} videos${stats.active ? ` · ${stats.active} working` : ''}` : undefined}
+      eyebrow="Library"
+      title="Projects"
+      subtitle={stats ? `${stats.clips} clips from ${stats.total} videos${stats.active ? ` · ${stats.active} working` : ''}` : 'Everything you have clipped'}
       refreshing={refreshing}
       onRefresh={async () => {
         setRefreshing(true);
         await load();
         setRefreshing(false);
       }}
-      right={<Button label="New" icon="add" onPress={() => router.navigate('/create')} />}
+      right={<Button label="New project" icon="add" onPress={() => router.navigate('/create')} />}
       wide
     >
-      <Chips
-        value={filter}
-        onChange={setFilter}
-        options={[
-          { value: 'all', label: 'All' },
-          { value: 'active', label: 'In progress' },
-          { value: 'done', label: 'Ready' },
-          { value: 'failed', label: 'Failed' },
-        ]}
-      />
+      <View style={styles.bar}>
+        <Segmented
+          value={filter}
+          onChange={setFilter}
+          options={[
+            { value: 'all', label: 'All' },
+            { value: 'active', label: 'In progress' },
+            { value: 'done', label: 'Ready' },
+            { value: 'failed', label: 'Failed' },
+          ]}
+        />
+        <View style={{ flexGrow: 1, flexBasis: 240, maxWidth: 380 }}>
+          <Input icon="search" value={q} onChangeText={setQ} placeholder="Search projects…" returnKeyType="search" />
+        </View>
+      </View>
       {error ? <Notice tone="danger">{error}</Notice> : null}
-      {jobs === null ? (
-        <Spinner />
-      ) : jobs.length === 0 ? (
-        <Empty icon="film-outline" title="No clips yet" hint="Paste a video link on the Create tab or pick something from Trending." action={<Button label="Create clips" icon="add" onPress={() => router.navigate('/create')} />} />
+      {shown === null ? (
+        <View style={styles.grid}>
+          {[0, 1, 2, 3, 4, 5].map((i) => (
+            <Skeleton key={i} style={{ flexGrow: 1, flexBasis: 260, height: 240, borderRadius: radius.lg }} />
+          ))}
+        </View>
+      ) : shown.length === 0 ? (
+        <Empty
+          icon={q ? 'search-outline' : 'film-outline'}
+          title={q ? 'No matches' : filter === 'all' ? 'No projects yet' : 'Nothing here'}
+          hint={q ? `Nothing called “${q}”.` : 'Paste a video link on the Create tab or pick something from Trending.'}
+          action={q ? undefined : <Button label="Create clips" icon="add" onPress={() => router.navigate('/create')} />}
+        />
       ) : (
         <View style={styles.grid}>
-          {jobs.map((j) => {
-            const cover = j.cover ? (j.cover.startsWith('/') ? mediaUrl(j.cover) : j.cover) : null;
-            const running = ACTIVE.includes(j.status);
-            return (
-              <Card key={j.id} onPress={() => router.push(`/job/${j.id}`)} style={styles.card}>
-                <View style={styles.cover}>
-                  {cover ? <Image source={{ uri: cover }} style={StyleSheet.absoluteFill} resizeMode="cover" /> : <Ionicons name="film-outline" size={32} color={colors.textDim} />}
-                  <View style={styles.coverBadge}>
-                    <Text variant="label" color="#FFFFFF" fixedColor style={{ fontFamily: fonts.semibold }}>
-                      {VIEW[j.options.aspect]} · {j.options.mode === 'custom' ? 'custom' : `${j.options.segmentSeconds}s`}
-                    </Text>
-                  </View>
-                </View>
-                <View style={{ gap: 6 }}>
-                  <Text variant="title" numberOfLines={2} style={{ fontFamily: fonts.semibold }}>
-                    {j.title}
-                  </Text>
-                  <View style={styles.metaRow}>
-                    <StatusPill status={j.status} />
-                    <Text variant="label" color={colors.textMuted}>
-                      {j.status === 'DONE' ? `${j.clipCount} clips · ` : ''}
-                      {j.sourceDuration ? `${clock(j.sourceDuration)} · ` : ''}
-                      {ago(j.createdAt)}
-                    </Text>
-                  </View>
-                  {running ? (
-                    <>
-                      <ProgressBar value={j.progress} />
-                      <Text variant="label" color={colors.textMuted} numberOfLines={1}>
-                        {j.stage ?? 'Waiting'} · {j.progress}%
-                      </Text>
-                    </>
-                  ) : null}
-                  {j.status === 'FAILED' && j.error ? (
-                    <Text variant="label" color={colors.danger} numberOfLines={2}>
-                      {j.error}
-                    </Text>
-                  ) : null}
-                </View>
-              </Card>
-            );
-          })}
+          {shown.map((j) => (
+            <ProjectCard key={j.id} job={j} />
+          ))}
         </View>
       )}
     </Screen>
@@ -138,9 +120,6 @@ export default function Library() {
 }
 
 const styles = StyleSheet.create({
-  grid: { flexDirection: 'row', flexWrap: 'wrap', gap: space.md },
-  card: { flexGrow: 1, flexBasis: 280, maxWidth: 520, padding: space.md },
-  cover: { height: 150, borderRadius: radius.md, backgroundColor: colors.surfaceAlt, overflow: 'hidden', alignItems: 'center', justifyContent: 'center' },
-  coverBadge: { position: 'absolute', left: 8, top: 8, backgroundColor: 'rgba(0,0,0,0.6)', borderRadius: 6, paddingHorizontal: 7, paddingVertical: 2 },
-  metaRow: { flexDirection: 'row', alignItems: 'center', gap: space.sm, flexWrap: 'wrap' },
+  bar: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'space-between', gap: space.md },
+  grid: { flexDirection: 'row', flexWrap: 'wrap', gap: space.lg },
 });

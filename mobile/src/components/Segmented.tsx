@@ -1,48 +1,35 @@
-import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
-import { colors, fonts, radius, space } from '../theme';
-import { OPENED_ON_DESKTOP } from '../theme/desktop';
-import { desk } from '../theme/desk';
+import { Pressable, StyleSheet, View } from 'react-native';
+import Ionicons from '@expo/vector-icons/Ionicons';
+import { colors, fonts, radius } from '../theme';
 import { Text } from './Text';
 
 interface Props<T extends string> {
-  options: { value: T; label: string }[];
+  options: { value: T; label: string; icon?: keyof typeof Ionicons.glyphMap }[];
   value: T;
   onChange: (v: T) => void;
 }
 
+/** A pill track with the chosen option raised. */
 export function Segmented<T extends string>({ options, value, onChange }: Props<T>) {
   return (
-    <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={OPENED_ON_DESKTOP ? styles.deskRow : styles.row} style={OPENED_ON_DESKTOP ? styles.deskStrip : undefined}>
+    <View style={styles.track} accessibilityRole="tablist">
       {options.map((o) => {
-        const active = o.value === value;
+        const on = o.value === value;
         return (
-          OPENED_ON_DESKTOP ? (
-            // The dashboard's tabs: teal text with a 2px underline for the chosen one
-            <Pressable key={o.value} onPress={() => onChange(o.value)} accessibilityRole="tab" accessibilityState={{ selected: active }} style={styles.deskTab}>
-              <Text variant="body" color={active ? desk.teal : desk.muted} fixedColor style={{ fontSize: 15, fontFamily: active ? fonts.medium : fonts.regular }}>
-                {o.label}
-              </Text>
-              {active ? <View style={styles.deskLine} /> : null}
-            </Pressable>
-          ) : (
-            <Pressable key={o.value} onPress={() => onChange(o.value)} style={[styles.chip, active && styles.active]}>
-              <Text variant="label" color={active ? colors.onHighlight : colors.textMuted}>
-                {o.label}
-              </Text>
-            </Pressable>
-          )
+          <Pressable key={o.value} onPress={() => onChange(o.value)} accessibilityRole="tab" accessibilityState={{ selected: on }} style={[styles.seg, on && styles.on]}>
+            {o.icon ? <Ionicons name={o.icon} size={15} color={on ? colors.text : colors.textMuted} /> : null}
+            <Text variant="label" color={on ? colors.text : colors.textMuted} style={{ fontFamily: on ? fonts.semibold : fonts.medium, fontSize: 13.5 }}>
+              {o.label}
+            </Text>
+          </Pressable>
         );
       })}
-    </ScrollView>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
-  row: { gap: space.sm },
-  chip: { paddingHorizontal: space.lg, paddingVertical: space.sm + 2, borderRadius: radius.pill, backgroundColor: colors.glass, borderWidth: 1, borderColor: colors.glassBorder },
-  active: { backgroundColor: colors.highlight, borderColor: colors.highlight },
-  deskStrip: { flexGrow: 0, borderBottomWidth: 1, borderBottomColor: desk.border },
-  deskRow: { gap: 30, height: 48, alignItems: 'stretch' },
-  deskTab: { justifyContent: 'center' },
-  deskLine: { position: 'absolute', left: 0, right: 0, bottom: -1, height: 2, backgroundColor: desk.teal },
+  track: { flexDirection: 'row', padding: 4, gap: 4, borderRadius: radius.pill, backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.border, alignSelf: 'flex-start' },
+  seg: { flexDirection: 'row', alignItems: 'center', gap: 6, height: 34, paddingHorizontal: 16, borderRadius: radius.pill },
+  on: { backgroundColor: colors.surfaceHigh, borderWidth: 1, borderColor: colors.borderStrong },
 });

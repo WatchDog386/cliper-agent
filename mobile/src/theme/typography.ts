@@ -1,9 +1,6 @@
 import type { TextStyle } from 'react-native';
 
-/**
- * The Business-SME (sme.optimas) lettering: Figtree on phones, Inter on a laptop or desktop. Loaded in
- * app/_layout.tsx under these names.
- */
+/** Inter everywhere (loaded in app/_layout.tsx under these names). Tight, heavy display type. */
 export const fonts = {
   regular: 'AppSans_400Regular',
   medium: 'AppSans_500Medium',
@@ -12,18 +9,18 @@ export const fonts = {
   extrabold: 'AppSans_800ExtraBold',
 } as const;
 
-/** Sizes as written in the screens; the Text component turns them into SME's phone sizes (14 → 12, 17 → 14.5 …). */
 export const type = {
-  // One scale everywhere (as on the dashboard): page headings match the "Hello …" greeting, SemiBold 17
-  display: { fontFamily: fonts.semibold, fontSize: 24, lineHeight: 29, letterSpacing: -0.3 },
-  h1: { fontFamily: fonts.bold, fontSize: 17, lineHeight: 23 },
-  h2: { fontFamily: fonts.semibold, fontSize: 16, lineHeight: 22 },
-  title: { fontFamily: fonts.semibold, fontSize: 14.5, lineHeight: 20 },
-  body: { fontFamily: fonts.regular, fontSize: 14, lineHeight: 20 },
+  hero: { fontFamily: fonts.extrabold, fontSize: 52, lineHeight: 56, letterSpacing: -2 },
+  display: { fontFamily: fonts.extrabold, fontSize: 30, lineHeight: 36, letterSpacing: -0.9 },
+  h1: { fontFamily: fonts.bold, fontSize: 22, lineHeight: 28, letterSpacing: -0.5 },
+  h2: { fontFamily: fonts.semibold, fontSize: 17, lineHeight: 23, letterSpacing: -0.2 },
+  title: { fontFamily: fonts.semibold, fontSize: 15, lineHeight: 20, letterSpacing: -0.1 },
+  body: { fontFamily: fonts.regular, fontSize: 15, lineHeight: 22 },
   bodySm: { fontFamily: fonts.regular, fontSize: 13.5, lineHeight: 19 },
-  label: { fontFamily: fonts.regular, fontSize: 12.5, lineHeight: 16 },
-  overline: { fontFamily: fonts.medium, fontSize: 12, lineHeight: 16 },
-  stat: { fontFamily: fonts.semibold, fontSize: 26, lineHeight: 30, letterSpacing: -0.4 },
+  label: { fontFamily: fonts.medium, fontSize: 12.5, lineHeight: 16 },
+  overline: { fontFamily: fonts.semibold, fontSize: 11, lineHeight: 14, letterSpacing: 1.2, textTransform: 'uppercase' },
+  stat: { fontFamily: fonts.bold, fontSize: 28, lineHeight: 32, letterSpacing: -1 },
+  mono: { fontFamily: fonts.medium, fontSize: 12.5, lineHeight: 16, fontVariant: ['tabular-nums'] },
 } satisfies Record<string, TextStyle>;
 
 export type TypeVariant = keyof typeof type;

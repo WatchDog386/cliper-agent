@@ -69,6 +69,8 @@ model ClipJob {
   /// Human-readable step, e.g. "Rendering clip 3 of 8".
   stage          String?
   error          String?
+  /// The OpusClip project behind an AI job (mode "ai").
+  externalId     String?
   createdAt      DateTime   @default(now())
   updatedAt      DateTime   @updatedAt
   startedAt      DateTime?
@@ -94,6 +96,10 @@ model Clip {
   sizeBytes Int
   /// Highlight score 0–100 (highlights mode only).
   score     Float?
+  /// AI clips (OpusClip): a headline, a post caption and hashtags.
+  title       String?
+  description String?
+  hashtags    String?
   /// Paths relative to STORAGE_DIR.
   file      String
   thumb     String?

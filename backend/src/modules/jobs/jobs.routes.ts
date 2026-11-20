@@ -15,6 +15,7 @@ import { me } from '../../middleware/auth';
 import { parse } from '../../middleware/validate';
 import { optionsSchema } from '../../clipper/options';
 import { abortJob, nudgeQueue } from '../../clipper/queue';
+import { opusEnabled } from '../../clipper/opus';
 import { jobView } from './jobs.view';
 
 export const jobsRouter = Router();
@@ -43,7 +44,8 @@ jobsRouter.get(
       where,
       orderBy: { createdAt: 'desc' },
       take: 100,
-      include: { _count: { select: { clips: true } }, clips: { where: { index: 1 } } },
+      // The first clip that still exists is the cover (clip 1 may have been deleted)
+      include: { _count: { select: { clips: true } }, clips: { orderBy: { index: 'asc' }, take: 1 } },
     });
     const stats = await prisma.clipJob.groupBy({ by: ['status'], where: { userId: me(req).id }, _count: true });
     const clipTotal = await prisma.clip.count({ where: { job: { userId: me(req).id } } });
@@ -109,6 +111,7 @@ jobsRouter.post(
       }
       const options = parse(optionsSchema, raw);
       checkLimits(options);
+      if (options.mode === 'ai') throw badRequest('AI clips work from a video link. Paste the link instead, or pick another mode for uploads.', 'AI_NEEDS_LINK');
       const name = path.basename(file.originalname).slice(0, 200);
       const title = typeof req.body.title === 'string' && req.body.title.trim() ? req.body.title.trim().slice(0, 200) : name.replace(VIDEO_EXT, '');
       const job = await prisma.clipJob.create({
@@ -184,6 +187,7 @@ jobsRouter.post(
       nudgeQueue();
       return void res.status(201).json({ job: jobView(next) });
     }
+    if (options.mode === 'ai') throw badRequest('AI clips work from a video link, and this video was uploaded', 'AI_NEEDS_LINK');
     const src = await sourceOf(job.id);
     if (!src) throw conflict('The uploaded file is gone. Upload it again.', 'SOURCE_GONE');
     const next = await prisma.clipJob.create({ data: { ...base, status: JobStatus.CANCELLED, stage: 'Preparing' } });
@@ -221,6 +225,7 @@ jobsRouter.delete(
 );
 
 function checkLimits(o: z.infer<typeof optionsSchema>) {
+  if (o.mode === 'ai' && !opusEnabled()) throw badRequest('AI clips are not set up on this server. The admin adds an OpusClip API key (OPUSCLIP_API_KEY).', 'AI_DISABLED');
   if (o.maxClips > env.MAX_CLIPS_PER_JOB) throw badRequest(`At most ${env.MAX_CLIPS_PER_JOB} clips per video on this server`, 'TOO_MANY_CLIPS');
   if ((o.ranges?.length ?? 0) > env.MAX_CLIPS_PER_JOB) throw badRequest(`At most ${env.MAX_CLIPS_PER_JOB} ranges per video on this server`, 'TOO_MANY_CLIPS');
 }

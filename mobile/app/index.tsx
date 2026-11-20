@@ -3,5 +3,5 @@ import { useAuth } from '../src/store/auth';
 
 export default function Index() {
   const token = useAuth((s) => s.token);
-  return <Redirect href={token ? '/create' : '/login'} />;
+  return <Redirect href={token ? '/home' : '/login'} />;
 }
