@@ -6,10 +6,13 @@ import { prisma } from '../lib/prisma';
 import { jobDir, resolveStored, toStored } from '../lib/storage';
 import { ToolError } from '../lib/tools';
 import { loudnessPerSecond, probe, renderClip, thumbnail } from './media';
-import { optionsSchema } from './options';
+import { frameSize, optionsSchema } from './options';
 import { planSegments } from './plan';
 import { downloadSource, fetchMeta, ytdlpReason } from './source';
 import { createProject, downloadClip, OpusError, waitForClips } from './opus';
+import { buildAss, detectSilences, hookLine, keepIntervals, remapTime, snapToSentences, wordsIn, writeFile, type Word } from './edit';
+import { keptLength } from './filters';
+import { transcribe, transcriberConfigured } from './transcribe';
 
 /*
  * The job queue. The database is the queue: a job waits as QUEUED, is claimed atomically, and moves
@@ -148,17 +151,36 @@ export async function processJob(id: string, signal: AbortSignal) {
     await prisma.clipJob.update({ where: { id }, data: { sourceDuration: info.duration, sourceWidth: info.width, sourceHeight: info.height } });
 
     // ── 3. Plan the clips ──
+    const ae = o.autoEdit;
     let loudness: number[] = [];
     const analyseShare = o.mode === 'highlights' ? 12 : 0;
     if (o.mode === 'highlights' && info.hasAudio) {
       await report(JobStatus.ANALYZING, fetchShare, 'Finding the best moments', true);
       loudness = await loudnessPerSecond(sourceFile, info.duration, (f) => soft(JobStatus.ANALYZING, fetchShare + f * analyseShare, `Finding the best moments · ${Math.round(f * 100)}%`), signal);
     }
-    const segments = planSegments(info.duration, o, loudness).slice(0, env.MAX_CLIPS_PER_JOB);
+    // Speech to text, when captions, a hook or sentence-snapped cuts want it and a transcriber is set up
+    let words: Word[] = [];
+    const wantWords = !!ae && (ae.captions || ae.hook || (ae.smartCuts && o.mode !== 'custom'));
+    if (wantWords && info.hasAudio && transcriberConfigured()) {
+      await report(JobStatus.ANALYZING, fetchShare + analyseShare, 'Transcribing the speech', true);
+      try {
+        const t = await transcribe(sourceFile, (f) => soft(JobStatus.ANALYZING, fetchShare + analyseShare, `Transcribing the speech · ${Math.round(f * 100)}%`), signal, o.aiLanguage);
+        words = t?.words ?? [];
+      } catch (e) {
+        if (signal.aborted) throw e;
+        // Captions are a bonus: a failing transcriber does not fail the job
+        console.warn(`[queue] job ${id}: transcription failed, continuing without captions`, e instanceof Error ? e.message : e);
+      }
+    }
+    let segments = planSegments(info.duration, o, loudness).slice(0, env.MAX_CLIPS_PER_JOB);
     if (!segments.length) throw new Error('Nothing to clip: check the start / end times and ranges against the video length');
+    if (ae?.smartCuts && words.length && o.mode !== 'custom') segments = snapToSentences(segments, words, info.duration);
+    const silences = ae?.removeSilence && info.hasAudio ? await detectSilences(sourceFile, signal) : [];
 
     // ── 4. Render ──
     const logo = await brandLogo(job.userId, o.brandKitId);
+    // Captions and the progress bar take the kit's colour, with or without a logo
+    const brandColor = o.brandKitId ? (await prisma.brandKit.findFirst({ where: { id: o.brandKitId, userId: job.userId }, select: { primaryColor: true } }))?.primaryColor : undefined;
     const base = fetchShare + analyseShare;
     const each = (99 - base) / segments.length;
     for (let i = 0; i < segments.length; i++) {
@@ -167,7 +189,9 @@ export async function processJob(id: string, signal: AbortSignal) {
       const label = `Rendering clip ${i + 1} of ${segments.length}`;
       await report(JobStatus.RENDERING, base + i * each, label, true);
       const out = path.join(dir, `clip-${n}.mp4`);
-      const r = await renderClip(sourceFile, info, seg, o, out, (f) => soft(JobStatus.RENDERING, base + (i + f) * each, `${label} · ${Math.round(f * 100)}%`), signal, logo);
+      const edit = ae ? await clipEdit(out.replace(/\.mp4$/, '.ass'), seg, o, ae, words, silences, info, job.title ?? '', brandColor) : undefined;
+      const r = await renderClip(sourceFile, info, seg, o, out, (f) => soft(JobStatus.RENDERING, base + (i + f) * each, `${label} · ${Math.round(f * 100)}%`), signal, logo, edit);
+      if (edit?.ass) await fs.promises.rm(edit.ass, { force: true });
       const thumb = path.join(dir, `clip-${n}.jpg`);
       const hasThumb = await thumbnail(out, r.duration, thumb, signal).then(
         () => true,
@@ -216,6 +240,47 @@ async function brandLogo(userId: string, kitId?: string) {
   if (!(await fs.promises.stat(file).catch(() => null))) return undefined;
   const position = (['top-left', 'top-right', 'bottom-left', 'bottom-right'] as const).find((p) => p === kit.logoPosition) ?? 'top-right';
   return { file, position, size: kit.logoSize, opacity: kit.logoOpacity };
+}
+
+/** The auto-edit plan of one clip: cuts, zoom, captions (.ass written next to the clip), bar, sound. */
+async function clipEdit(
+  assFile: string,
+  seg: { start: number; end: number },
+  o: ReturnType<typeof optionsSchema.parse>,
+  ae: NonNullable<ReturnType<typeof optionsSchema.parse>['autoEdit']>,
+  words: Word[],
+  silences: [number, number][],
+  info: { width: number; height: number },
+  jobTitle: string,
+  brandColor?: string,
+) {
+  const keep = ae.removeSilence ? keepIntervals(seg.start, seg.end, silences) : [[0, seg.end - seg.start] as [number, number]];
+  const local = wordsIn(words, seg.start, seg.end)
+    .map((w) => {
+      const s = remapTime(w.start, keep, o.speed);
+      const e = remapTime(w.end, keep, o.speed);
+      return s === null || e === null ? null : { ...w, start: s, end: Math.max(e, s + 0.05) };
+    })
+    .filter((w): w is Word => w !== null);
+  const color = brandColor ?? '#C8FF2E';
+  let ass: string | undefined;
+  if ((ae.captions && local.length) || ae.hook) {
+    const { width, height } = frameSize(o.aspect, o.quality, info);
+    await writeFile(
+      assFile,
+      buildAss({
+        width,
+        height,
+        words: ae.captions ? local : [],
+        style: ae.captionStyle,
+        highlight: color,
+        hook: ae.hook ? hookLine(local, jobTitle) : undefined,
+        hookSeconds: Math.min(3, (keptLength(keep) / o.speed) * 0.4),
+      }),
+    );
+    ass = assFile;
+  }
+  return { keep: keep.length > 1 ? keep : undefined, zoom: ae.zoom, ass, bar: ae.progressBar ? color : undefined, enhanceAudio: ae.enhanceAudio };
 }
 
 /**

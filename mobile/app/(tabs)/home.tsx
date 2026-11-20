@@ -26,7 +26,7 @@ const PLATFORMS: { icon: keyof typeof Ionicons.glyphMap; label: string }[] = [
 
 const MODES: { mode: Mode; title: string; hint: string; icon: keyof typeof Ionicons.glyphMap; ai?: boolean }[] = [
   { mode: 'ai', title: 'AI clips', hint: 'Viral hooks, animated captions, titles & hashtags', icon: 'sparkles', ai: true },
-  { mode: 'highlights', title: 'Best moments', hint: 'Loudness analysis picks the most energetic parts', icon: 'flame' },
+  { mode: 'highlights', title: 'Best moments', hint: 'Picks the most energetic parts, then auto-edits them: captions, jump cuts, zoom', icon: 'flame' },
   { mode: 'split', title: 'Split evenly', hint: 'Back-to-back clips of any length', icon: 'grid' },
   { mode: 'custom', title: 'Exact ranges', hint: 'Cut precisely the timestamps you list', icon: 'time' },
 ];

@@ -17,6 +17,7 @@ import { sourceRouter } from './modules/source/source.routes';
 import { discoverRouter } from './modules/discover/discover.routes';
 import { queueStats } from './clipper/queue';
 import { opusEnabled } from './clipper/opus';
+import { transcriberStatus } from './clipper/transcribe';
 import { aiRouter } from './modules/ai/ai.routes';
 import { adminRouter } from './modules/admin/admin.routes';
 import { brandRouter } from './modules/brand/brand.routes';
@@ -87,6 +88,8 @@ export function createApp() {
       limits: { maxSourceMinutes: env.MAX_SOURCE_MINUTES, maxClipsPerJob: env.MAX_CLIPS_PER_JOB, maxUploadMb: env.MAX_UPLOAD_MB },
       discover: env.YOUTUBE_API_KEY ? 'youtube-trending' : 'search',
       ai: opusEnabled(),
+      // Auto captions need a transcriber on the server
+      captions: Boolean(env.WHISPER_CMD.trim()),
     });
   });
   /** Tool versions and queue load (Settings → Server). */
@@ -94,7 +97,7 @@ export function createApp() {
     '/system',
     requireAuth,
     ah(async (_req, res) => {
-      res.json({ tools: await checkTools(), queue: queueStats(), ai: { enabled: opusEnabled() } });
+      res.json({ tools: { ...(await checkTools()), whisper: await transcriberStatus() }, queue: queueStats(), ai: { enabled: opusEnabled() } });
     }),
   );
 

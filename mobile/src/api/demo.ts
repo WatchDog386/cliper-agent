@@ -197,7 +197,7 @@ export async function demoApi<T>(path: string, options: { method?: string; body?
   const q = new URLSearchParams(query);
   const out = (v: unknown) => v as T;
 
-  if (route === '/config') return out({ appName: 'Cliper Agent', allowSignup: true, limits: { maxSourceMinutes: 180, maxClipsPerJob: 50, maxUploadMb: 2048 }, discover: 'youtube-trending', ai: true } satisfies AppConfig);
+  if (route === '/config') return out({ appName: 'Cliper Agent', allowSignup: true, limits: { maxSourceMinutes: 180, maxClipsPerJob: 50, maxUploadMb: 2048 }, discover: 'youtube-trending', ai: true, captions: true } satisfies AppConfig);
   if (route === '/auth/login' || route === '/auth/register') return out({ token: 'demo-token', user });
   if (route === '/auth/me') return out({ user: { ...user, name: (body.name as string) ?? user.name } });
   if (route === '/auth/change-password') return out({ token: 'demo-token', user });

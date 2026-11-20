@@ -11,8 +11,8 @@ import { Segmented } from '../../src/components/Segmented';
 import { Text } from '../../src/components/Text';
 import { AspectPicker, Badge, Card, Chips, Notice, OptionCards, ProgressBar, Screen, SectionTitle, Skeleton, ToggleRow } from '../../src/components/ui';
 import { api, uploadVideo } from '../../src/api/client';
-import type { AiStatus, AppConfig, BrandKit, ClipOptions, Job, Mode, SourceMeta } from '../../src/api/types';
-import { useDraft } from '../../src/store/draft';
+import type { AiStatus, AppConfig, AutoEdit, BrandKit, ClipOptions, Job, Mode, SourceMeta } from '../../src/api/types';
+import { DEFAULT_OPTIONS, EDIT_PRESETS, useDraft } from '../../src/store/draft';
 import { colors, fonts, gradients, radius, space } from '../../src/theme';
 import { useDesktop } from '../../src/theme/desktop';
 import { clock, compact, estimateClips, parseClock } from '../../src/utils/format';
@@ -159,6 +159,7 @@ export default function Create() {
       aiPrompt: o.mode === 'ai' ? o.aiPrompt?.trim() || undefined : undefined,
       // '' means "no branding" (chosen on purpose); the server only needs a real id
       brandKitId: o.mode !== 'ai' && o.brandKitId ? o.brandKitId : undefined,
+      autoEdit: o.mode !== 'ai' ? o.autoEdit : undefined,
     }),
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [o, trimStart, trimEnd, ranges],
@@ -445,9 +446,50 @@ export default function Create() {
     </Card>
   ) : null;
 
+  const ae: AutoEdit = o.autoEdit ?? DEFAULT_OPTIONS.autoEdit!;
+  const setAe = (patch: Partial<AutoEdit>) => set({ autoEdit: { ...ae, ...patch } });
+  const preset = (Object.keys(EDIT_PRESETS) as (keyof typeof EDIT_PRESETS)[]).find((k) => JSON.stringify(EDIT_PRESETS[k]) === JSON.stringify(ae)) ?? 'custom';
+  const noSpeech = config ? !config.captions : false;
+  const editCard = !isAi ? (
+    <Card glow={preset === 'viral'}>
+      <SectionTitle step={4} hint="The edits a video editor makes on every short, done for you">
+        Auto edit
+      </SectionTitle>
+      <Chips
+        value={preset}
+        onChange={(p) => p !== 'custom' && set({ autoEdit: EDIT_PRESETS[p] })}
+        options={[
+          { value: 'viral', label: 'Viral', icon: 'flash' },
+          { value: 'clean', label: 'Clean', icon: 'leaf-outline' },
+          { value: 'off', label: 'Off', icon: 'close-circle-outline' },
+          ...(preset === 'custom' ? [{ value: 'custom' as const, label: 'Custom', icon: 'options-outline' as const }] : []),
+        ]}
+      />
+      <ToggleRow icon="text-outline" label="Animated captions" hint={noSpeech ? 'Needs speech-to-text on the server (WHISPER_CMD); skipped until then' : 'Word by word, the spoken word highlighted'} value={ae.captions} onChange={(captions) => setAe({ captions })} />
+      {ae.captions ? (
+        <Chips
+          size="sm"
+          value={ae.captionStyle}
+          onChange={(captionStyle) => setAe({ captionStyle })}
+          options={[
+            { value: 'karaoke', label: 'Karaoke highlight' },
+            { value: 'bold', label: 'Bold boxes' },
+            { value: 'clean', label: 'Clean subtitles' },
+          ]}
+        />
+      ) : null}
+      <ToggleRow icon="megaphone-outline" label="Hook title" hint="The opening line, big, for the first seconds" value={ae.hook} onChange={(hook) => setAe({ hook })} />
+      <ToggleRow icon="git-commit-outline" label="Smart cuts" hint="Clips start and end on whole sentences, never mid-word" value={ae.smartCuts} onChange={(smartCuts) => setAe({ smartCuts })} />
+      <ToggleRow icon="cut-outline" label="Remove silences" hint="Pauses over 0.6 s become jump cuts" value={ae.removeSilence} onChange={(removeSilence) => setAe({ removeSilence })} />
+      <ToggleRow icon="scan-outline" label="Punch-in zoom" hint="A 12% zoom every few seconds keeps eyes on screen" value={ae.zoom} onChange={(zoom) => setAe({ zoom })} />
+      <ToggleRow icon="mic-outline" label="Enhance audio" hint="Removes rumble and hiss, levels to −14 LUFS like TikTok and YouTube" value={ae.enhanceAudio} onChange={(enhanceAudio) => setAe({ enhanceAudio })} />
+      <ToggleRow icon="remove-outline" label="Progress bar" hint="A thin bar that fills as the clip plays" value={ae.progressBar} onChange={(progressBar) => setAe({ progressBar })} />
+    </Card>
+  ) : null;
+
   const viewCard = !isAi ? (
     <Card>
-      <SectionTitle step={4} hint="Where the clips will be watched">
+      <SectionTitle step={5} hint="Where the clips will be watched">
         Format
       </SectionTitle>
       <AspectPicker value={o.aspect} onChange={(aspect) => set({ aspect })} />
@@ -525,6 +567,9 @@ export default function Create() {
         ['flash-outline', o.mode === 'highlights' ? 'Best moments' : o.mode === 'split' ? 'Split evenly' : 'Exact ranges'],
         ...(o.speed !== 1 ? [['speedometer-outline', `${o.speed}× speed`]] : []),
         ...(o.mute ? [['volume-mute-outline', 'No sound']] : []),
+        ...(o.autoEdit && preset !== 'off'
+          ? [['color-wand-outline', `Auto edit: ${[o.autoEdit.captions && 'captions', o.autoEdit.removeSilence && 'jump cuts', o.autoEdit.zoom && 'zoom', o.autoEdit.hook && 'hook', o.autoEdit.enhanceAudio && 'audio', o.autoEdit.progressBar && 'bar'].filter(Boolean).join(', ')}`]]
+          : []),
         ...(o.brandKitId && kits.some((k) => k.id === o.brandKitId) ? [['briefcase-outline', `Logo: ${kits.find((k) => k.id === o.brandKitId)!.name}`]] : []),
       ];
 
@@ -577,6 +622,7 @@ export default function Create() {
       {modeCard}
       {aiCard}
       {cutCard}
+      {editCard}
       {viewCard}
     </>
   );

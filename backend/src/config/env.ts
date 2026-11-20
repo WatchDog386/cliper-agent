@@ -51,6 +51,14 @@ const schema = z.object({
   TRENDING_REGION: z.string().length(2).default('US'),
   APP_NAME: z.string().default('Cliper Agent'),
 
+  /**
+   * Speech to text for auto captions and smart cuts, e.g. "python3 scripts/transcribe.py" (needs
+   * `pip install faster-whisper`). Empty: captions are skipped; other auto-edit steps still work.
+   */
+  WHISPER_CMD: z.string().default(''),
+  /** faster-whisper model: tiny · base · small · medium (bigger = better and slower). */
+  WHISPER_MODEL: z.string().default('base'),
+
   /** OpusClip API key (sk-…): switches on the "AI clips" mode. Keep it in .env only, never in git. */
   OPUSCLIP_API_KEY: z.string().default(''),
   OPUSCLIP_API_URL: z.string().url().default('https://api.opus.pro'),

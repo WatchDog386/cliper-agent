@@ -34,6 +34,7 @@ they'll be watched:
 - **Accounts**: email + password. The first account is the admin. Sign-up can be closed. Each person only sees their own jobs.
 - **Housekeeping**: finished jobs and their files are deleted after `KEEP_JOBS_DAYS` (default 7).
 - **Studio UI**: a dark "neon studio" design (lime actions, violet AI glow) with a Home dashboard (one-box link → clips), a two-column Create studio with a live summary, Projects with search, a per-clip page (player, AI caption to copy, virality ring, previous / next), an Admin page (team, storage, failures) and a 404 page.
+- **Auto edit** (local modes, free, on your server): the edits an editor makes on every short. **Animated captions** word by word with the spoken word highlighted (karaoke, bold boxes or clean), a **hook title**, **smart cuts** that snap every clip to whole sentences, **silence removal** (jump cuts), **punch-in zoom**, **audio clean-up** levelled to −14 LUFS and a **progress bar**. Presets: Viral, Clean, Off. Captions and smart cuts use speech-to-text (faster-whisper on the CPU, bundled in the Docker image); everything else is pure ffmpeg.
 - **Brand kits**: upload your logo once, pick the corner, size and opacity (with a live 9:16 preview) and colours; every clip made with the kit gets the logo burned in. One kit can be the default.
 - **Brand templates**: your OpusClip caption/layout templates, with previews; pick the one AI clips use.
 - **Content calendar**: schedule clips per platform (TikTok, Instagram, YouTube, X, Facebook, LinkedIn), day and time from the clip page; month and upcoming views; mark posts as posted or skipped. It plans and reminds; it does not post for you.
@@ -130,6 +131,8 @@ SKIP_DB=1 npx vitest run test/plan.test.ts   # planner / filter unit tests only
 | `YOUTUBE_API_KEY` | – | Enables YouTube's real trending chart in the Trending tab |
 | `TRENDING_REGION` | `US` | Country for the trending chart |
 | `ALLOW_PRIVATE_URLS` | `false` | Development only: allow links to localhost / private networks |
+| `WHISPER_CMD` | (Docker: bundled) | Speech-to-text command for auto captions and smart cuts, e.g. `python3 scripts/transcribe.py` after `pip install faster-whisper`. Empty: captions skipped |
+| `WHISPER_MODEL` | `base` | `tiny` · `base` · `small` · `medium`: bigger is more accurate and slower |
 | `OPUSCLIP_API_KEY` | – | OpusClip API key: switches on **AI clips**. Server-side only; never commit it |
 | `OPUSCLIP_TIMEOUT_MINUTES` | `120` | Give up on an OpusClip project after this long |
 | `TRUST_PROXY` | `1` (prod) | Proxies in front of the API; `2` behind Cloudflare ([docs/CLOUDFLARE.md](docs/CLOUDFLARE.md)) |

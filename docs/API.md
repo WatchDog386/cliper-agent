@@ -39,7 +39,13 @@ Passwords: 8+ characters with a letter and a number.
   "quality": "1080",        // 480 | 720 | 1080 (short side of the frame)
   "fade": false,
   "mute": false,
-  "speed": 1                // 0.5–2
+  "speed": 1,               // 0.5–2
+  "brandKitId": "…",        // optional: stamp this brand kit's logo
+  "autoEdit": {             // optional, local modes
+    "captions": true, "captionStyle": "karaoke",   // karaoke | bold | clean (needs WHISPER_CMD)
+    "hook": true, "smartCuts": true, "removeSilence": true,
+    "zoom": true, "enhanceAudio": true, "progressBar": true
+  }
 }
 ```
 
@@ -62,7 +68,7 @@ Everything has a default except `ranges` in custom mode.
 AI mode (`"mode": "ai"`, needs `OPUSCLIP_API_KEY`) adds these options: `aiModel` (`ClipAnything` | `ClipBasic`),
 `aiDuration` (`auto` | `short` | `medium` | `long` | `xl`), `aiPrompt`, `aiTemplateId`, `aiHook`, `aiLanguage`.
 AI clips carry `title`, `description` and `hashtags`, and `score` is OpusClip's virality score (0–100).
-`/config` reports `ai: true|false`. Uploads with `mode: "ai"` are refused (`AI_NEEDS_LINK`), and so is AI mode without a key (`AI_DISABLED`).
+`/config` reports `ai: true|false` and `captions: true|false` (speech-to-text available). Uploads with `mode: "ai"` are refused (`AI_NEEDS_LINK`), and so is AI mode without a key (`AI_DISABLED`).
 
 ## AI engine
 

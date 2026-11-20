@@ -57,6 +57,31 @@ export const ARTICLES: Article[] = [
     ],
   },
   {
+    slug: 'auto-edit-explained',
+    title: 'Auto edit: what each switch does',
+    summary: 'Captions, smart cuts, jump cuts, zoom, sound and the progress bar, and when to use them.',
+    category: 'Get started',
+    minutes: 4,
+    icon: 'color-wand-outline',
+    body: [
+      { p: 'Turning a long video into shorts is two jobs: finding the moments, then editing each one so it holds attention. Auto edit does the second job for every clip, on your server, at no extra cost.' },
+      {
+        list: [
+          'Animated captions: most people watch muted. Captions appear word by word and the word being spoken lights up in your brand colour. Needs speech-to-text on the server.',
+          'Hook title: the clip’s opening sentence, big, at the top for the first seconds, so the scroll stops.',
+          'Smart cuts: the clip’s start and end move to sentence boundaries, so no clip begins mid-word or ends before the punchline.',
+          'Remove silences: pauses longer than about 0.6 s are cut. The result feels like a tight, hand-edited jump-cut video.',
+          'Punch-in zoom: every few seconds the frame jumps 12% closer, then back. A classic editor trick for talking heads.',
+          'Enhance audio: removes low rumble and hiss and levels the sound to −14 LUFS, the loudness TikTok, Reels and YouTube play at.',
+          'Progress bar: a thin bar along the bottom that fills as the clip plays. It tells viewers the clip is short, so they stay.',
+        ],
+      },
+      { h: 'Presets' },
+      { list: ['Viral: everything on. Best for podcasts, interviews, commentary.', 'Clean: captions, smart cuts, jump cuts and audio; no zoom or bar. Best for brands and tutorials.', 'Off: the clip exactly as cut. Best for music, sports and gameplay where silence and pacing matter.'] },
+      { tip: 'Captions and the progress bar take the primary colour of the brand kit you choose on the Create page.' },
+    ],
+  },
+  {
     slug: 'hooks-that-stop-the-scroll',
     title: 'Hooks that stop the scroll',
     summary: 'You have about two seconds. Eight openings that keep people watching.',

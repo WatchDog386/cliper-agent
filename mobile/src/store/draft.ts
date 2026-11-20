@@ -1,5 +1,12 @@
 import { create } from 'zustand';
-import type { ClipOptions } from '../api/types';
+import type { AutoEdit, ClipOptions } from '../api/types';
+
+/** Auto-edit presets. */
+export const EDIT_PRESETS: Record<'viral' | 'clean' | 'off', AutoEdit> = {
+  viral: { captions: true, captionStyle: 'karaoke', hook: true, smartCuts: true, removeSilence: true, zoom: true, enhanceAudio: true, progressBar: true },
+  clean: { captions: true, captionStyle: 'clean', hook: false, smartCuts: true, removeSilence: true, zoom: false, enhanceAudio: true, progressBar: false },
+  off: { captions: false, captionStyle: 'karaoke', hook: false, smartCuts: false, removeSilence: false, zoom: false, enhanceAudio: false, progressBar: false },
+};
 
 /** Default clipping settings: 30-second phone clips with a blurred background. */
 export const DEFAULT_OPTIONS: ClipOptions = {
@@ -16,13 +23,26 @@ export const DEFAULT_OPTIONS: ClipOptions = {
   aiModel: 'ClipAnything',
   aiDuration: 'auto',
   aiHook: false,
+  autoEdit: {
+    captions: true,
+    captionStyle: 'karaoke',
+    hook: false,
+    smartCuts: true,
+    removeSilence: true,
+    zoom: false,
+    enhanceAudio: true,
+    progressBar: false,
+  },
 };
 
 const KEY = 'cliper.defaults';
 function saved(): ClipOptions {
   try {
     const raw = typeof localStorage !== 'undefined' ? localStorage.getItem(KEY) : null;
-    if (raw) return { ...DEFAULT_OPTIONS, ...(JSON.parse(raw) as Partial<ClipOptions>), startAt: undefined, endAt: undefined, ranges: undefined };
+    if (raw) {
+      const o = JSON.parse(raw) as Partial<ClipOptions>;
+      return { ...DEFAULT_OPTIONS, ...o, autoEdit: { ...DEFAULT_OPTIONS.autoEdit!, ...o.autoEdit }, startAt: undefined, endAt: undefined, ranges: undefined };
+    }
   } catch {
     /* ignore */
   }

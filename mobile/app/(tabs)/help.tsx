@@ -12,6 +12,7 @@ type Icon = keyof typeof Ionicons.glyphMap;
 
 const TOPICS: { icon: Icon; title: string; hint: string; go: string }[] = [
   { icon: 'rocket-outline', title: 'Getting started', hint: 'Your first project, step by step', go: '/learn/first-clips-in-five-minutes' },
+  { icon: 'color-wand-outline', title: 'Auto edit', hint: 'Captions, jump cuts, zoom, sound', go: '/learn/auto-edit-explained' },
   { icon: 'sparkles-outline', title: 'AI clips', hint: 'OpusClip modes, prompts and credits', go: '/learn/choosing-a-clipping-mode' },
   { icon: 'phone-portrait-outline', title: 'Formats & framing', hint: '9:16, 16:9, 1:1, 4:5 and how they fill', go: '/learn/aspect-ratios-explained' },
   { icon: 'briefcase-outline', title: 'Brand kits', hint: 'Your logo on every clip', go: '/learn/brand-every-clip' },
@@ -30,6 +31,8 @@ const FAQ: { q: string; a: string; tag: string }[] = [
   { tag: 'Clips', q: 'What does the score on a clip mean?', a: 'AI clips show OpusClip’s virality score (0–100). Best-moments clips show an energy score: how lively that stretch is compared with the rest of the video. Higher is a better bet to post first.' },
   { tag: 'Clips', q: 'I made phone clips. Can I get the desktop version?', a: 'Yes. On the project page press Desktop version (or Phone version). It cuts the same moments in the new shape.' },
   { tag: 'Clips', q: 'Why did my logo not appear?', a: 'Logos from brand kits are added to Best moments, Split evenly and Exact ranges clips, at render time. Check the kit has a logo and was selected on the Create page before you started. AI clips use the OpusClip template instead.' },
+  { tag: 'Clips', q: 'Why do my clips have no captions?', a: 'Animated captions need speech-to-text on the server (faster-whisper, set up by WHISPER_CMD; the Docker image includes it). Settings → Server shows "whisper" when it is ready. Videos without speech get no captions; the other auto-edit steps still apply.' },
+  { tag: 'Clips', q: 'Auto edit cut too much / too little', a: 'Remove silences only cuts pauses longer than about 0.6 s and never shortens a clip below half its length. For music, sports or gameplay, use the Off preset or switch Remove silences off.' },
   { tag: 'Errors', q: '“Video unavailable” or “sign in to confirm your age”', a: 'The site would not hand the video over: it may be private, age-restricted, region-locked or removed. Try another link, or download it yourself and upload the file.' },
   { tag: 'Errors', q: 'The project failed. What now?', a: 'Open the project: the red message says why. Press Try again for temporary problems (network, site hiccup). For uploads, the file is kept until the project is deleted, so a retry does not need a new upload.' },
   { tag: 'Errors', q: 'Upload stops at 100 MB', a: 'The site may run behind Cloudflare, which refuses uploads over 100 MB on its standard plans. Paste a link instead, or ask the admin for the direct upload address.' },

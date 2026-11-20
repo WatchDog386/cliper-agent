@@ -38,6 +38,19 @@ export interface ClipOptions {
   aiLanguage?: string;
   /** Brand kit whose logo is stamped on the clips (local modes). */
   brandKitId?: string;
+  /** Auto-edit for the local modes. */
+  autoEdit?: AutoEdit;
+}
+
+export interface AutoEdit {
+  captions: boolean;
+  captionStyle: 'karaoke' | 'bold' | 'clean';
+  hook: boolean;
+  smartCuts: boolean;
+  removeSilence: boolean;
+  zoom: boolean;
+  enhanceAudio: boolean;
+  progressBar: boolean;
 }
 
 export type JobStatus = 'QUEUED' | 'FETCHING' | 'ANALYZING' | 'RENDERING' | 'DONE' | 'FAILED' | 'CANCELLED';
@@ -118,6 +131,8 @@ export interface AppConfig {
   discover: 'youtube-trending' | 'search';
   /** AI clips (OpusClip) are set up on the server. */
   ai?: boolean;
+  /** A speech-to-text engine is set up (auto captions, smart cuts). */
+  captions?: boolean;
 }
 
 export interface AiStatus {

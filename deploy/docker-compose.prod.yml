@@ -50,6 +50,8 @@ services:
       # AI clips (OpusClip): keep the key in deploy/.env only
       OPUSCLIP_API_KEY: ${OPUSCLIP_API_KEY:-}
       OPUSCLIP_TIMEOUT_MINUTES: ${OPUSCLIP_TIMEOUT_MINUTES:-120}
+      # Auto captions: tiny · base · small · medium (bigger = more accurate, slower)
+      WHISPER_MODEL: ${WHISPER_MODEL:-base}
       API_RATE_LIMIT: ${API_RATE_LIMIT:-600}
       LOGIN_RATE_LIMIT: ${LOGIN_RATE_LIMIT:-30}
     volumes:

@@ -62,6 +62,19 @@ export const optionsSchema = z
     aiLanguage: z.string().trim().max(8).optional(),
     /** A brand kit whose logo is stamped on every clip (local modes). */
     brandKitId: z.string().trim().max(40).optional(),
+    /** Auto-edit for the local modes (see clipper/edit.ts). */
+    autoEdit: z
+      .object({
+        captions: z.boolean().default(false),
+        captionStyle: z.enum(['karaoke', 'bold', 'clean']).default('karaoke'),
+        hook: z.boolean().default(false),
+        smartCuts: z.boolean().default(true),
+        removeSilence: z.boolean().default(false),
+        zoom: z.boolean().default(false),
+        enhanceAudio: z.boolean().default(false),
+        progressBar: z.boolean().default(false),
+      })
+      .optional(),
   })
   .refine((o) => o.endAt === undefined || o.startAt === undefined || o.endAt > o.startAt, { message: 'End must be after start', path: ['endAt'] })
   .refine((o) => o.mode !== 'custom' || (o.ranges?.length ?? 0) > 0, { message: 'Add at least one time range', path: ['ranges'] });

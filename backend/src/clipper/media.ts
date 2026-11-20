@@ -1,7 +1,7 @@
 import fs from 'node:fs';
 import { env } from '../config/env';
 import { run, tools } from '../lib/tools';
-import { buildFilterGraph, type SourceInfo, type Watermark } from './filters';
+import { buildFilterGraph, type EditPlan, type SourceInfo, type Watermark } from './filters';
 import type { ClipOptions } from './options';
 import type { Segment } from './plan';
 
@@ -74,9 +74,10 @@ export async function renderClip(
   signal?: AbortSignal,
   /** A brand-kit logo to stamp on the clip. */
   logo?: { file: string } & Watermark,
+  edit?: EditPlan,
 ) {
   const length = seg.end - seg.start;
-  const g = buildFilterGraph(src, o, length, logo);
+  const g = buildFilterGraph(src, o, length, logo, edit);
   const args = [
     '-hide_banner',
     '-nostdin',
